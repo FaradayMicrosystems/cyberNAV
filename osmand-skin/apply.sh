@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Applies the cyberNAV Phosphor HUD skin to an OsmAnd checkout.
-#   apply.sh <OsmAnd checkout> <OsmAnd-resources checkout>
+#   apply.sh <OsmAnd checkout> <OsmAnd-resources checkout> [patched OsmAndCore_androidNativeRelease.aar]
 # Every change is a small, checked edit, so a newer OsmAnd that moved something fails loudly
 # here instead of building an unskinned app.
 set -euo pipefail
 SKIN="$(cd "$(dirname "$0")" && pwd)"
-APP="$1/OsmAnd"; RES="$2"
+APP="$1/OsmAnd"; RES="$2"; CORE_AAR="${3:-}"
 APP_ID="net.faradaymicrosystems.cybernav"
 
 edit() { # edit <file> <python-regex> <replacement>  (must match at least once)
@@ -34,7 +34,7 @@ edit "$S" '"daynight_mode", DayNightMode\.DAY,' '"daynight_mode", DayNightMode.N
 edit "$S" '"osmand_theme", isSupportSystemTheme\(\) \? SYSTEM_DEFAULT_THEME : OSMAND_LIGHT_THEME\)' '"osmand_theme", OSMAND_DARK_THEME)'
 edit "$S" '"enable_3d_map_objects", false\)' '"enable_3d_map_objects", true)'
 edit "$S" 'BUILDINGS_3D_DEFAULT_COLOR = 0x666666;' 'BUILDINGS_3D_DEFAULT_COLOR = 0x2F6B1F;'
-edit "$S" 'BUILDINGS_3D_ALPHA_DEF_VALUE = 0\.5f;' 'BUILDINGS_3D_ALPHA_DEF_VALUE = 0.35f;'
+edit "$S" 'BUILDINGS_3D_ALPHA_DEF_VALUE = 0\.5f;' 'BUILDINGS_3D_ALPHA_DEF_VALUE = 1.0f;'
 
 echo "3b. Night palette everywhere (phone map, app and Android Auto): the HUD is night-only"
 D="$APP/src/net/osmand/plus/helpers/DayNightHelper.java"
@@ -56,5 +56,13 @@ edit "$APP/src/net/osmand/plus/activities/MapActivity.java" '(protected void onR
 
 echo "7. First run: offer the whole country, not just the region"
 edit "$APP/src/net/osmand/plus/firstusage/FirstUsageWizardFragment.java" '(\t\t\tif \(mapIndexItem != null\) \{\n)\t\t\t\tshowMapFoundWizard\(true\);(\n\t\t\t\} else \{\n\t\t\t\tcloseWizard\(\);)' '\1\t\t\t\tif (!net.osmand.plus.cybernav.CyberCountry.offer(getActivity(), downloadThread, validationManager, mapDownloadRegion, mapIndexItem,\n\t\t\t\t\t\t() -> showMapFoundWizard(true), () -> { mapDownloadCancelled = true; closeWizard(); })) {\n\t\t\t\t\tshowMapFoundWizard(true);\n\t\t\t\t}\2'
+
+echo "8. Wireframe 3D buildings: use the map engine with patched building shaders"
+if [ -n "$CORE_AAR" ]; then
+  CORE_AAR="$(realpath "$CORE_AAR")"
+  edit "$APP/build.gradle" 'dependencies\.add\("openglImplementation", "net\.osmand:OsmAndCore_androidNativeRelease:\$\{remoteAarSnapshot\}@aar"\)' "dependencies.add(\"openglImplementation\", files(\"$CORE_AAR\"))"
+else
+  echo "  skipped (no patched engine given): buildings stay solid"
+fi
 
 echo "Skin applied."

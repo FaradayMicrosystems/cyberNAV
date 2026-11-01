@@ -40,8 +40,14 @@ jobs:
         run: sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost "$AGENT_TOOLSDIRECTORY" || true
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: "17" }
+      - name: Patch the map engine (wireframe 3D buildings, taller short buildings)
+        run: |
+          mkdir -p cybernav-core
+          url=https://builder.osmand.net/ivy/net.osmand/OsmAndCore_androidNativeRelease/5.4/OsmAndCore_androidNativeRelease-5.4.aar
+          curl -fsSL --retry 3 -o cybernav-core/original.aar "$url"
+          python3 skin/osmand-skin/core/patch_core.py cybernav-core/original.aar cybernav-core/OsmAndCore_androidNativeRelease.aar
       - name: Apply the cyberNAV skin
-        run: bash skin/osmand-skin/apply.sh android resources
+        run: bash skin/osmand-skin/apply.sh android resources cybernav-core/OsmAndCore_androidNativeRelease.aar
       - name: Build APK (OpenGL renderer with 3D buildings, arm64)
         working-directory: android
         env:
