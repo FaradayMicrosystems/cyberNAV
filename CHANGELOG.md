@@ -2,6 +2,10 @@
 
 Every change gets its own version: v0.0.N, one higher per release. GitHub Actions picks the number and publishes each release with the list of commits it contains; this file keeps the human-readable history. Downloads: https://github.com/FaradayMicrosystems/cyberNAV/releases
 
+## v0.0.10 (2026-11-01)
+
+- Fix: the 3D map engine now draws with the cyberNAV map style (phosphor at night, light mode by day). It used OsmAnd's own built-in copy of the style before, so the map kept OsmAnd's stock colours. CI now checks this.
+
 ## v0.0.9 (2026-11-01)
 
 - Light mode for daylight: the map in dark phosphor ink on pale paper, alongside the night HUD.

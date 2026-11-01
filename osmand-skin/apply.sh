@@ -69,6 +69,26 @@ echo "8. Wireframe 3D buildings: use the map engine with patched building shader
 if [ -n "$CORE_AAR" ]; then
   CORE_AAR="$(realpath "$CORE_AAR")"
   edit "$APP/build.gradle" 'dependencies\.add\("openglImplementation", "net\.osmand:OsmAndCore_androidNativeRelease:\$\{remoteAarSnapshot\}@aar"\)' "dependencies.add(\"openglImplementation\", files(\"$CORE_AAR\"))"
+  # The OpenGL map engine draws with the copy of the map style bundled inside it, not the app's
+  # copy, so put the recoloured style (step 1) into the engine's resource bundle too.
+  python3 - "$CORE_AAR" "$RES/rendering_styles/default.render.xml" <<'PY2'
+import sys, zipfile, zlib, struct, shutil, os
+aar, style = sys.argv[1:3]
+xml = open(style, "rb").read()
+qz = struct.pack(">I", len(xml)) + zlib.compress(xml, 9)  # Qt qCompress format
+tmp = aar + ".tmp"
+hits = 0
+with zipfile.ZipFile(aar) as zin, zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as zout:
+    for item in zin.infolist():
+        data = zin.read(item.filename)
+        if item.filename.endswith("OsmAndCore_ResourcesBundle/map/styles/default.render.xml.qz"):
+            data = qz; hits += 1
+        zout.writestr(item, data)
+if hits != 1:
+    os.remove(tmp); sys.exit(f"apply.sh: expected 1 bundled default.render.xml.qz in {aar}, found {hits}")
+shutil.move(tmp, aar)
+print("  engine map style replaced with the cyberNAV style")
+PY2
 else
   echo "  skipped (no patched engine given): buildings stay solid"
 fi

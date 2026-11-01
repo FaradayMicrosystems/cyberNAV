@@ -104,6 +104,16 @@ jobs:
           "$aapt" dump badging cyberNAV.apk | head -1 | tee badging.txt
           grep -q "name='net.faradaymicrosystems.cybernav' versionCode='${{ steps.ver.outputs.n }}'" badging.txt \
             || { echo "::error::Unexpected app id or versionCode"; exit 1; }
+      - name: Check the map engine draws with the cyberNAV map style
+        run: |
+          python3 - <<'EOF'
+          import zipfile, zlib, sys
+          z = zipfile.ZipFile("cyberNAV.apk")
+          d = z.read("assets/OsmAndCore_ResourcesBundle/map/styles/default.render.xml.qz")
+          ok = b'cybernav="phosphor-hud"' in zlib.decompress(d[4:])
+          print("engine map style is cyberNAV:", ok)
+          sys.exit(0 if ok else "::error::The map engine still has the stock OsmAnd map style")
+          EOF
       - uses: actions/upload-artifact@v4
         with: { name: cyberNAV-apk, path: cyberNAV.apk, retention-days: 30 }
       - name: Publish release
