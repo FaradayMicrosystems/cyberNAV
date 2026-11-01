@@ -118,11 +118,12 @@ export class NavigationSession {
     }
     // A jump confirmed by a second fix close to it is real (e.g. tunnel exit, GPS restart).
     this.pendingJump = null;
-    if (f.heading == null && this.lastFix) {
-      const d = dist(this.lastFix.x, this.lastFix.y, f.x, f.y);
-      f.heading = d > 2 ? bearing(this.lastFix.x, this.lastFix.y, f.x, f.y) : this.position?.heading ?? 0;
-    }
-    if (f.speed == null) f.speed = this.lastFix ? dist(this.lastFix.x, this.lastFix.y, f.x, f.y) / Math.max(0.1, f.t - this.lastFix.t) : 0;
+    // Without Doppler speed/bearing, derive them from displacement, but treat movement within
+    // the GPS error as jitter (a parked car "moving" 4 m between fixes is not driving).
+    const moved = this.lastFix ? dist(this.lastFix.x, this.lastFix.y, f.x, f.y) : 0;
+    const jitter = moved < Math.max(3, f.accuracy * 0.8);
+    if (f.speed == null) f.speed = !this.lastFix || jitter ? 0 : moved / Math.max(0.1, f.t - this.lastFix.t);
+    if (f.heading == null) f.heading = this.lastFix && !jitter ? bearing(this.lastFix.x, this.lastFix.y, f.x, f.y) : this.position?.heading ?? 0;
     if (f.speed < 1.5 && this.position) f.heading = this.position.heading; // stationary: heading is noise
     this.lastFix = f;
     if (this.signalLost) { this.signalLost = false; this.#emit("signal", { lost: false }); }
@@ -151,18 +152,25 @@ export class NavigationSession {
   #update(initial) {
     const r = this.route, p = this.position;
     if (!r || !p) return;
-    // Search a window of the route around current progress so loops and parallel streets
-    // on the same route do not confuse matching.
-    const lo = Math.max(0, this.progress - 60), hi = initial ? Infinity : this.progress + 400 + p.speed * 10;
+    // Search a window of the route around current progress so loops, ramps and parallel
+    // streets on the same route are not mistaken for a jump ahead. Matches far from where the
+    // car should be by now (progress + speed × elapsed) are penalised to keep continuity.
+    const dt = this.prevFixT != null ? Math.max(0.5, Math.min(30, p.t - this.prevFixT)) : 1;
+    const expected = this.progress + (p.speed ?? 0) * dt;
+    const slack = 25 + (p.accuracy ?? 10) + (p.speed ?? 0) * dt * 0.5;
+    const lo = Math.max(0, this.progress - 60), hi = initial ? Infinity : expected + slack + 250;
     let best = null;
     for (let i = 0; i + 1 < r.coords.length; i++) {
       if (r.cum[i + 1] < lo) continue; if (r.cum[i] > hi) break;
       const [ax, ay] = r.coords[i], [bx, by] = r.coords[i + 1];
       const q = projectOnSegment(p.x, p.y, ax, ay, bx, by);
+      const s = r.cum[i] + q.t * (r.cum[i + 1] - r.cum[i]);
       let score = q.d;
       if (p.speed > 3) { const dh = Math.abs(angleDiff(p.heading, bearing(ax, ay, bx, by))); if (dh > 100) score += 40; }
-      if (!best || score < best.score) best = { ...q, i, s: r.cum[i] + q.t * (r.cum[i + 1] - r.cum[i]), score };
+      if (!initial) score += Math.max(0, Math.abs(s - expected) - slack) * 0.5;
+      if (!best || score < best.score) best = { ...q, i, s, score };
     }
+    this.prevFixT = p.t;
     if (!best) return;
     const tolerance = this.o.offRouteMeters + Math.min(40, p.accuracy ?? 10);
     if (best.score > tolerance) {
@@ -173,7 +181,6 @@ export class NavigationSession {
     }
     this.offCount = 0;
     this.matched = best.s;
-    this.progress = Math.max(this.progress - 30, best.s); // allow small backward corrections only
     this.progress = best.s;
     const remaining = r.distance - this.progress;
     // Arrival: close along the route, or past the destination's projection.

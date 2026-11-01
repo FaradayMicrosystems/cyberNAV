@@ -28,7 +28,7 @@ export class SimulatedDriver {
   }
 
   /** Build a detour that leaves the route at maneuver m and keeps driving for `len` metres. */
-  #detour(m, len = 260) {
+  #detour(m, len = 1500) {
     const r = this.routeRef;
     const k = r.nodeIndex.indexOf(m.index);
     if (k < 0) return false;
@@ -39,18 +39,26 @@ export class SimulatedDriver {
     // Prefer going straight on when the route turns, otherwise the gentlest wrong option.
     options.sort((a, b) => Math.abs(angleDiff(inH, bearing(this.net.x[v], this.net.y[v], this.net.x[a.to], this.net.y[a.to])))
       - Math.abs(angleDiff(inH, bearing(this.net.x[v], this.net.y[v], this.net.x[b.to], this.net.y[b.to]))));
-    const coords = [[this.net.x[v], this.net.y[v]]];
-    let e = options[0], travelled = 0, from = v;
-    const seen = new Set([v]);
-    while (e && travelled < len) {
-      coords.push([this.net.x[e.to], this.net.y[e.to]]); travelled += e.len; seen.add(e.to);
-      const h = bearing(this.net.x[e.from], this.net.y[e.from], this.net.x[e.to], this.net.y[e.to]);
-      from = e.to;
-      const nexts = this.net.outEdges(from).filter(n => !seen.has(n.to));
-      nexts.sort((a, b) => Math.abs(angleDiff(h, bearing(this.net.x[from], this.net.y[from], this.net.x[a.to], this.net.y[a.to])))
-        - Math.abs(angleDiff(h, bearing(this.net.x[from], this.net.y[from], this.net.x[b.to], this.net.y[b.to]))));
-      e = nexts[0];
-    }
+    // Follow each candidate greedily (straightest continuation) and take the first that
+    // keeps going for `len` metres, so the detour does not end in a dead end.
+    const walk = first => {
+      const coords = [[this.net.x[v], this.net.y[v]]];
+      let e = first, travelled = 0;
+      const seen = new Set([v, prevV]);
+      while (e && travelled < len) {
+        coords.push([this.net.x[e.to], this.net.y[e.to]]); travelled += e.len; seen.add(e.to);
+        const from = e.to, h = bearing(this.net.x[e.from], this.net.y[e.from], this.net.x[from], this.net.y[from]);
+        const nexts = this.net.outEdges(from).filter(n => !seen.has(n.to));
+        nexts.sort((a, b) => Math.abs(angleDiff(h, bearing(this.net.x[from], this.net.y[from], this.net.x[a.to], this.net.y[a.to])))
+          - Math.abs(angleDiff(h, bearing(this.net.x[from], this.net.y[from], this.net.x[b.to], this.net.y[b.to]))));
+        e = nexts[0];
+      }
+      return { coords, travelled };
+    };
+    let pick = null;
+    for (const o of options) { const w = walk(o); if (!pick || w.travelled > pick.travelled) pick = w; if (w.travelled >= len) { pick = w; break; } }
+    if (pick.travelled < 200) return false; // only dead ends here: try the next junction instead
+    const coords = pick.coords;
     if (coords.length < 2) return false;
     this.path = coords; this.cum = cumulative(coords); this.s = 0; this.detouring = true; this.maneuvers = [];
     return true;
@@ -82,6 +90,7 @@ export class SimulatedDriver {
           this.wrongTurnsLeft.delete(mi);
           const over = this.s - m.at;
           if (this.#detour(m)) this.s = Math.min(over, this.cum[this.cum.length - 1]);
+          else if (mi + 1 < this.maneuvers.length) this.wrongTurnsLeft.add(mi + 1); // no real alternative here
           break;
         }
       }

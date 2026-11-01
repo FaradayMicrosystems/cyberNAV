@@ -52,15 +52,6 @@ class CarHub(val carContext: CarContext, lifecycle: Lifecycle) : DefaultLifecycl
     private val screens: ScreenManager get() = carContext.getCarService(ScreenManager::class.java)
     private var density = 1f
 
-    init {
-        lifecycle.addObserver(this)
-        nav.setNavigationManagerCallback(object : NavigationManagerCallback {
-            override fun onStopNavigation() { js("cybernav.action('end')") }
-            override fun onAutoDriveEnabled() { js("cybernav.action('demo')") }
-        })
-        carContext.getCarService(AppManager::class.java).setSurfaceCallback(surfaceCallback)
-    }
-
     private val surfaceCallback = object : SurfaceCallback {
         override fun onSurfaceAvailable(container: SurfaceContainer) { attach(container) }
         override fun onSurfaceDestroyed(container: SurfaceContainer) { detach() }
@@ -76,6 +67,16 @@ class CarHub(val carContext: CarContext, lifecycle: Lifecycle) : DefaultLifecycl
 
     private var lastWidth = 0
     private var lastHeight = 0
+
+    init {
+        lifecycle.addObserver(this)
+        nav.setNavigationManagerCallback(object : NavigationManagerCallback {
+            override fun onStopNavigation() { js("cybernav.action('end')") }
+            override fun onAutoDriveEnabled() { js("cybernav.action('demo')") }
+        })
+        carContext.getCarService(AppManager::class.java).setSurfaceCallback(surfaceCallback)
+    }
+
 
     private fun sendArea(a: Rect) {
         if (lastWidth == 0) return

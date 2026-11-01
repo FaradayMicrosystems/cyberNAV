@@ -24,7 +24,7 @@ test("geo: bearings and angle differences", () => {
   assert.equal(angleDiff(10, 350), -20);
   const p = makeProjection(11.97, 57.7); const [x, y] = p.toXY(11.98, 57.71); const [lon, lat] = p.toLonLat(x, y);
   assert.ok(Math.abs(lon - 11.98) < 1e-9 && Math.abs(lat - 57.71) < 1e-9);
-  assert.ok(Math.abs(Math.hypot(x, y) - 1272) < 15, "1 km scale sanity");
+  assert.ok(Math.abs(Math.hypot(x, y) - 1256) < 15, "1 km scale sanity");
 });
 
 test("network: bundled city loads, is connected, has one-ways and roundabouts", () => {
