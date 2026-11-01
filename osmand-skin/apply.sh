@@ -48,4 +48,10 @@ echo "5. Wireframe navigation icon"
 cp "$SKIN"/res/drawable/*.xml "$APP/res/drawable/"
 cp "$SKIN/res/mipmap-anydpi-v26/icon_nightly.xml" "$APP/res/mipmap-anydpi-v26/icon_nightly.xml"
 
+echo "6. In-app updates from GitHub releases"
+mkdir -p "$APP/src/net/osmand/plus/cybernav"
+cp "$SKIN/src/net/osmand/plus/cybernav/CyberUpdater.java" "$APP/src/net/osmand/plus/cybernav/"
+edit "$APP/AndroidManifest.xml" '(\n(\s*)<uses-permission android:name="android\.permission\.INTERNET" />)' '\1\n\2<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />'
+edit "$APP/src/net/osmand/plus/activities/MapActivity.java" '(protected void onResume\(\) \{\n\t\tsuper\.onResume\(\);)' '\1\n\t\tnet.osmand.plus.cybernav.CyberUpdater.check(this);'
+
 echo "Skin applied."

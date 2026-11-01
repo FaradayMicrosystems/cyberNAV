@@ -65,4 +65,4 @@ jobs:
           gh release delete cybernav-osmand-latest --yes --cleanup-tag || true
           gh release create cybernav-osmand-latest ../cyberNAV-osmand.apk --prerelease --target "$GITHUB_SHA" \
             --title "cyberNAV (OsmAnd skin) – latest build" \
-            --notes "Phosphor HUD skin on OsmAnd ${{ steps.v.outputs.OSMAND_REF }} (r5.4). Based on OsmAnd, https://github.com/osmandapp/OsmAnd, GPLv3. Debug build for testing; installs next to OsmAnd."
+            --notes "cyberNAV build=${{ github.run_number }} (the in-app updater reads this). Phosphor HUD skin on OsmAnd ${{ steps.v.outputs.OSMAND_REF }} (r5.4). Based on OsmAnd, https://github.com/osmandapp/OsmAnd, GPLv3. Debug build for testing; installs next to OsmAnd."
