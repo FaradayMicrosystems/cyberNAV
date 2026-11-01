@@ -1,0 +1,1 @@
+The app-start sequence: title and subtitle, an acquisition counter with progress bar, and a typed log ending in a LIVE line. After it completes, fade it out over `dur-boot-fade` while map objects flicker on in order. Skip straight to the end under reduced motion and offer a Replay in settings.

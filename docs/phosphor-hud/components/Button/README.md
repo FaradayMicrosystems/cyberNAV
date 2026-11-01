@@ -1,0 +1,1 @@
+Square uppercase control in Share Tech Mono. Pressed or open state is `aria-pressed="true"` or `aria-expanded="true"`, shown with `fill-active` and a full `phosphor` border. `ph-btn--live` adds a blinking dot for real-time modes; `ph-btn--alert` is for destructive actions only. Glyph-only buttons need an aria-label.

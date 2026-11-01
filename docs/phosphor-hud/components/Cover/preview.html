@@ -1,0 +1,30 @@
+<!-- @dsCard height=300 -->
+<!doctype html><html><head><meta charset="utf-8"><title>Cover</title>
+<style>
+body{margin:0;background:var(--ground)}
+.c{position:relative;width:960px;height:300px;background:var(--ground);overflow:hidden}
+svg{position:absolute;left:0;top:0}
+.b1{fill:var(--phosphor)}.b2{fill:var(--line-strong)}.b3{fill:var(--line)}.b4{fill:var(--signal-caution)}
+.dot{fill:var(--ink-muted)}.hair{stroke:var(--line-faint);stroke-width:1}
+.n{position:absolute;left:40px;bottom:40px;max-width:440px}
+.n h1{margin:0;font-family:var(--font-head);font-weight:600;font-size:64px;line-height:.95;letter-spacing:.06em;color:var(--phosphor)}
+.n p{margin:12px 0 0;font-family:var(--font-data);font-size:13px;letter-spacing:.08em;color:var(--ink-muted)}
+.scan{position:absolute;inset:0;background:repeating-linear-gradient(to bottom,var(--scanline) 0 1px,transparent 1px 3px)}
+</style></head><body><div class="c">
+<svg width="960" height="300" viewBox="0 0 960 300" aria-hidden="true">
+<!-- blocks: phosphor 240x200, line-strong 120x120, line 160x80, signal-caution 40x40 (small: a state colour)
+     arrangement: one tall chamfered slab bleeding off the top, satellites stepped below-right, all cut at chamfer-panel (10px)
+     pattern: dot grid at space-16 pitch (precise, mono, telemetry: "instrument, not website")
+     steps: space-16 pitch, space-24 gaps; radius-none, corners cut by chamfer-panel -->
+<g id="dots"></g>
+<path class="b1" d="M530 -10H770V170L760 180H520V0Z"/>
+<path class="b2" d="M794 34H914V144L904 154H794Z"/>
+<path class="b3" d="M794 178H954V248L944 258H794Z"/>
+<path class="b4" d="M730 204H770V244H730Z"/>
+</svg>
+<div class="scan"></div>
+<div class="n"><h1>Phosphor HUD</h1><p>ONE GLOWING COLOUR // NAVIGATION CONSOLE FROM 1979</p></div>
+</div>
+<script>
+var g=document.getElementById("dots"),s="";for(var x=496;x<960;x+=16)for(var y=200;y<300;y+=16){if(x>=520&&x<=780&&y<=200)continue;if(x>=720&&x<=780&&y>=196&&y<=252)continue;if(x>=790)continue;s+='<rect class="dot" x="'+x+'" y="'+y+'" width="2" height="2"/>'}g.innerHTML=s;
+</script></body></html>

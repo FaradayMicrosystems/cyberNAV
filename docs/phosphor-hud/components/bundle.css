@@ -1,0 +1,93 @@
+@import url("https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Chakra+Petch:wght@400;500;600&display=swap");
+
+/* Phosphor HUD component styles. Every colour comes from tokens.css. Prefix: ph- */
+html,body{background:var(--ground);color:var(--phosphor);color-scheme:dark}
+body{margin:0;font-family:var(--font-data);font-size:13px}
+.ph-row{display:flex;flex-wrap:wrap;gap:var(--space-8);align-items:center;padding:var(--space-12)}
+.ph-col{display:flex;flex-direction:column;gap:var(--space-8);padding:var(--space-12)}
+
+/* Screen: ground + scanlines. Wrap any full-screen surface in it. */
+.ph-screen{position:relative;background:var(--ground);color:var(--phosphor);overflow:hidden}
+.ph-screen::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(to bottom,var(--scanline) 0 1px,transparent 1px 3px)}
+
+/* Caption */
+.ph-cap{font-family:var(--font-head);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-muted)}
+
+/* HUD panel: chamfered corners, thin outline, translucent fill */
+.ph-panel{position:relative;background:var(--panel);border:1px solid var(--line);backdrop-filter:blur(2px);padding:var(--space-10) var(--space-16);
+  clip-path:polygon(var(--chamfer-panel) 0,100% 0,100% calc(100% - var(--chamfer-panel)),calc(100% - var(--chamfer-panel)) 100%,0 100%,0 var(--chamfer-panel))}
+.ph-panel--drop{clip-path:polygon(var(--chamfer-drop) 0,100% 0,100% calc(100% - var(--chamfer-drop)),calc(100% - var(--chamfer-drop)) 100%,0 100%,0 var(--chamfer-drop));border-color:var(--line-strong);padding:var(--space-10) var(--space-12);display:flex;flex-direction:column;gap:var(--space-8)}
+.ph-panel__head{display:flex;justify-content:space-between;align-items:center;gap:var(--space-12);margin:calc(-1*var(--space-10)) calc(-1*var(--space-16)) var(--space-10);padding:var(--space-8) var(--space-12);border-bottom:1px solid var(--line-faint);font-family:var(--font-head);font-weight:600;letter-spacing:.18em;font-size:12px}
+.ph-panel__title{font-family:var(--font-head);font-weight:600;font-size:12px;letter-spacing:.2em;border-bottom:1px solid var(--line-faint);padding-bottom:6px}
+
+/* Button */
+.ph-btn{font-family:var(--font-data);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);background:transparent;border:1px solid var(--line-control);padding:4px 9px;cursor:pointer;border-radius:0;
+  transition:background-color var(--dur-control),border-color var(--dur-control),color var(--dur-control)}
+.ph-btn:hover{border-color:var(--line-strong);color:var(--phosphor)}
+.ph-btn[aria-pressed="true"],.ph-btn[aria-expanded="true"]{background:var(--fill-active);border-color:var(--phosphor);color:var(--phosphor)}
+.ph-btn:focus-visible{outline:1px solid var(--phosphor);outline-offset:2px}
+.ph-btn:disabled{opacity:.45;cursor:default}
+.ph-btn--quiet{border-color:transparent}
+.ph-btn--live{position:relative;padding-left:20px}
+.ph-btn--live::before{content:"";position:absolute;left:8px;top:50%;width:6px;height:6px;margin-top:-3px;border-radius:var(--radius-dot);background:var(--line-control)}
+.ph-btn--live[aria-pressed="true"]::before{background:var(--phosphor);animation:ph-blink var(--dur-blink) ease-in-out infinite}
+.ph-btn--alert{color:var(--signal-alert);border-color:var(--signal-alert)}
+@keyframes ph-blink{50%{opacity:.25}}
+
+/* Segmented control: buttons share borders */
+.ph-seg{display:inline-flex}
+.ph-seg .ph-btn{min-width:64px;text-align:center}
+.ph-seg .ph-btn+.ph-btn{margin-left:-1px}
+
+/* Fields */
+.ph-field{display:flex;flex-direction:column;gap:3px;font-family:var(--font-head);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-muted)}
+.ph-input,.ph-select{width:100%;box-sizing:border-box;font-family:var(--font-data);font-size:12px;letter-spacing:.04em;color:var(--phosphor);background:var(--ground);border:1px solid var(--line-control);padding:4px 7px;border-radius:0;text-transform:uppercase}
+.ph-input::placeholder{color:var(--ink-muted)}
+.ph-input:focus-visible,.ph-select:focus-visible{outline:1px solid var(--phosphor);outline-offset:2px}
+.ph-form{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-6) var(--space-8)}
+.ph-form .wide{grid-column:1/-1}
+
+/* Data readout: label left, value right, dotted rule */
+.ph-readout{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--space-4) var(--space-16);margin:0}
+.ph-readout>div{display:flex;justify-content:space-between;gap:10px;border-bottom:1px dotted var(--line-faint);padding-bottom:2px}
+.ph-readout dt{font-family:var(--font-head);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-muted)}
+.ph-readout dd{margin:0;font-size:13px;font-variant-numeric:tabular-nums}
+
+/* Segment meter: discrete filled cells (difficulty, signal, congestion) */
+.ph-meter{display:inline-flex;gap:3px;align-items:center;font-family:var(--font-head);font-size:10px;letter-spacing:.14em;color:var(--ink-muted)}
+.ph-meter i{display:inline-block;width:14px;height:7px;border:1px solid var(--line-strong)}
+.ph-meter i.on{background:var(--phosphor);border-color:var(--phosphor)}
+.ph-meter--caution i.on{background:var(--signal-caution);border-color:var(--signal-caution)}
+.ph-meter--alert i.on{background:var(--signal-alert);border-color:var(--signal-alert)}
+
+/* Status bar: scale bar, cursor, keyboard help */
+.ph-status{display:flex;flex-wrap:wrap;gap:6px 24px;align-items:center;padding:7px 14px;font-variant-numeric:tabular-nums}
+.ph-status .k{font-family:var(--font-head);font-size:11px;letter-spacing:.16em;color:var(--ink-muted);margin-right:6px}
+.ph-scalebar{display:inline-block;height:6px;border:1px solid var(--phosphor);border-top:0;vertical-align:middle;margin-right:8px}
+.ph-status .help{margin-left:auto;font-size:11px;letter-spacing:.06em;color:var(--ink-muted)}
+
+/* Log list: entries hang off a vertical rule */
+.ph-log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;font-variant-numeric:tabular-nums}
+.ph-log li{display:flex;flex-direction:column;gap:1px;border-left:2px solid var(--line-strong);padding-left:8px}
+.ph-log b{font-weight:400;color:var(--phosphor)}
+.ph-log em{font-style:normal;font-size:10px;letter-spacing:.08em;color:var(--ink-muted)}
+.ph-log span{font-size:11px;color:var(--ink-soft)}
+.ph-log li.alert{border-left-color:var(--signal-alert)}
+.ph-log li.caution{border-left-color:var(--signal-caution)}
+
+/* Boot loader */
+.ph-boot{display:flex;flex-direction:column;gap:var(--space-12);padding:var(--space-16)}
+.ph-boot__head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px 32px;border-bottom:1px solid var(--line);padding-bottom:14px}
+.ph-boot__title{font-family:var(--font-head);font-weight:600;font-size:clamp(20px,3vw,34px);letter-spacing:.22em}
+.ph-boot__sub{font-size:12px;letter-spacing:.3em;color:var(--ink-muted);margin-top:6px}
+.ph-boot__prog{display:grid;grid-template-columns:auto auto;gap:6px 14px;align-items:center;min-width:min(260px,100%)}
+.ph-boot__pct{text-align:right;font-variant-numeric:tabular-nums;font-size:14px}
+.ph-bar{grid-column:1/-1;height:6px;border:1px solid var(--line-strong)}
+.ph-bar i{display:block;height:100%;background:var(--phosphor);transition:width .3s ease}
+.ph-boot__log{margin:0;font-family:var(--font-data);font-size:12px;line-height:1.55;letter-spacing:.08em;white-space:pre;color:var(--ink-soft)}
+
+@media (prefers-reduced-motion:reduce){
+  .ph-screen::after{display:none}
+  .ph-btn--live[aria-pressed="true"]::before{animation:none}
+  .ph-bar i{transition:none}
+}

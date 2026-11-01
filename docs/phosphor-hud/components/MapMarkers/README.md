@@ -1,0 +1,1 @@
+Drawn map marks: diamond for a point, outlined circle for an area, glowing chevron for anything moving (heading-aligned), ring for a cluster, corner brackets for the selection, `signal-alert` diamond for incidents. No icon images.

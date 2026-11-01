@@ -1,0 +1,1 @@
+Reference rendering of a cyberNAV street map with the top bar, a turn panel and the status bar. Layer order, stroke widths and patterns are listed in the Map styling section; every colour comes from a `map-*` or `signal-*` token.

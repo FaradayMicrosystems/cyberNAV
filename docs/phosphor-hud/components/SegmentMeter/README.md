@@ -1,0 +1,1 @@
+Discrete level shown as filled cells (`ph-meter`, `i.on`). Use for signal strength, congestion and difficulty. Always label the level in words too; switch to `--caution` or `--alert` only for warning levels.

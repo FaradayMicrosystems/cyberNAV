@@ -1,0 +1,14 @@
+<!-- @dsCard group="Motion" height=260 subtitle="App start: acquire, log, fade into the live map" -->
+<!doctype html><html><head><meta charset="utf-8"><title>BootLoader</title></head><body>
+<section class="ph-screen ph-boot" aria-label="Loading map">
+  <div class="ph-boot__head"><div><div class="ph-boot__title">CYBERNAV</div><div class="ph-boot__sub">CHART ACQUISITION // REGIONAL TILE NETWORK</div></div>
+    <div class="ph-boot__prog"><span class="ph-cap">Tiles acquired</span><span class="ph-boot__pct" id="pct">0 / 48</span><div class="ph-bar"><i id="fill" style="width:0"></i></div></div></div>
+  <pre class="ph-boot__log" id="log"></pre>
+</section>
+<script>
+var L=["NOW ENTERING GRID SECTOR 37N 122W.","RECEIVING CHART DATA NOW.","PRIMARY REFERENCE  CURRENT POSITION","ROADS ........ OK","TRANSIT ...... OK","TRAFFIC FEED . LIVE","CHART DATA COMPLETE // 48 TILES","NAV PLOT LIVE"],n=0,i=0,reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+function step(){n=Math.min(48,n+3);document.getElementById("pct").textContent=n+" / 48";document.getElementById("fill").style.width=(n/48*100)+"%";
+ if(n%6===0&&i<L.length){document.getElementById("log").textContent+=L[i++]+"\n"}
+ if(n<48)setTimeout(step,reduce?0:180);else setTimeout(function(){n=0;i=0;document.getElementById("log").textContent="";step()},2600)}
+if(reduce){n=45;i=7;document.getElementById("log").textContent=L.slice(0,7).join("\n")+"\n"}step();
+</script></body></html>

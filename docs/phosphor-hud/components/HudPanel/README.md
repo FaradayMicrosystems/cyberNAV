@@ -1,0 +1,1 @@
+Floating chamfered panel that holds detail over the live canvas. Use `ph-panel` for detail windows and `ph-panel--drop` for drop-downs from the top bar. Add `ph-panel__head` for a draggable header (cursor: move) with a ✕ close button. Keep the map interactive behind it; only use `veil` for a truly blocking dialog.

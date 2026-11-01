@@ -1,0 +1,1 @@
+Uppercase `ph-field` label stacked over a `ph-input` or `ph-select`, laid out in the two-column `ph-form` grid; add `wide` to span both columns. Placeholders are examples in the console voice, never instructions.
