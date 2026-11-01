@@ -34,6 +34,22 @@ export async function fetchRoads(lat, lon, radius = 5000, opts) {
   return packRoads(ways, "Road data © OpenStreetMap contributors (ODbL), live via Overpass API.");
 }
 
+/**
+ * Roads for a trip beyond the loaded area: main roads (tertiary and up) across the bounding box
+ * of both ends plus a margin, and every street within 2 km of the start and of the destination.
+ */
+export async function fetchCorridor(a, b, opts) {
+  const pad = 0.03;
+  const s = Math.min(a.lat, b.lat) - pad, n = Math.max(a.lat, b.lat) + pad;
+  const w = Math.min(a.lon, b.lon) - pad * 1.8, e = Math.max(a.lon, b.lon) + pad * 1.8;
+  const all = [...DRIVABLE].join("|");
+  const main = "motorway|motorway_link|trunk|trunk_link|primary|primary_link|secondary|secondary_link|tertiary|tertiary_link";
+  const q = `[out:json][timeout:60];(way["highway"~"^(${main})$"](${s},${w},${n},${e});` +
+    `way["highway"~"^(${all})$"](around:2000,${a.lat},${a.lon});way["highway"~"^(${all})$"](around:2000,${b.lat},${b.lon}););out geom tags;`;
+  const ways = overpassWays(await overpass(q, { timeoutMs: 60000, ...opts }));
+  return packRoads(ways, "Road data © OpenStreetMap contributors (ODbL), live via Overpass API.");
+}
+
 /** Height in metres from OSM building tags. */
 export function buildingHeight(tags) {
   const num = v => { const n = parseFloat(String(v ?? "").replace(",", ".")); return Number.isFinite(n) ? n : null; };

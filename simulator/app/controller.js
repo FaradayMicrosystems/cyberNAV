@@ -6,7 +6,7 @@ import { NavigationSession, State } from "../core/session.js";
 import { PlaceIndex } from "../core/search.js";
 import { SimulatedDriver } from "../core/drive.js";
 import { BuildingSet } from "../core/buildings.js";
-import { fetchRoads, fetchBuildings, searchPlaces } from "../core/online.js";
+import { fetchRoads, fetchBuildings, searchPlaces, fetchCorridor } from "../core/online.js";
 import { carTemplate } from "../core/templates.js";
 
 export const DEMO_START = { lon: 11.9737, lat: 57.7089, label: "GÖTEBORG CENTRAL" };
@@ -94,13 +94,21 @@ export class Controller {
   async #onGps(p) {
     const { latitude: lat, longitude: lon, accuracy, speed, heading } = p.coords;
     this.lastGps = { lat, lon };
-    if (this.source === "live" && this.#outsideData(lon, lat) && !this.loadingArea) { await this.loadLiveArea(lat, lon); }
+    // Fetch the area around the user when there is none yet or the car is about to leave it.
+    // While navigating only refetch when truly at the edge, and never more than once a minute.
+    const now = Date.now();
+    const navigating = this.session.state === State.NAVIGATING;
+    if (this.source === "live" && !this.loadingArea && now - (this.lastAreaTry ?? 0) > 60000 &&
+        (!this.liveLoaded || this.#outsideData(lon, lat, navigating ? 150 : 800))) {
+      this.lastAreaTry = now;
+      await this.loadLiveArea(lat, lon);
+    }
     if (this.source !== "live") return;
     const [x, y] = this.net.proj.toXY(lon, lat);
     this.session.updateLocation({ x, y, t: this.#now(), accuracy, speed: speed ?? null, heading: Number.isFinite(heading) ? heading : null });
   }
-  #outsideData(lon, lat) {
-    const [x, y] = this.net.proj.toXY(lon, lat), b = this.net.bbox, m = 800;
+  #outsideData(lon, lat, m = 800) {
+    const [x, y] = this.net.proj.toXY(lon, lat), b = this.net.bbox;
     return x < b[0] + m || x > b[2] - m || y < b[1] + m || y > b[3] - m;
   }
 
@@ -112,18 +120,33 @@ export class Controller {
     this.startGps();
   }
 
-  async loadLiveArea(lat, lon) {
+  async loadLiveArea(lat, lon, dest = null) {
     this.loadingArea = true; this.changed();
-    this.note("RECEIVING CHART DATA NOW.");
+    this.note(dest ? "RECEIVING ROUTE CORRIDOR NOW." : "RECEIVING CHART DATA NOW.");
+    // Keep an active trip across the reload.
+    const keep = dest ?? (this.session.state === State.NAVIGATING || this.session.state === State.PREVIEW ? this.#destLonLat() : null);
+    const wasNavigating = this.session.state === State.NAVIGATING;
     try {
-      const data = await fetchRoads(lat, lon, 6000);
+      const data = dest ? await fetchCorridor({ lat, lon }, dest) : await fetchRoads(lat, lon, 6000);
       this.loadNetwork(data, "live");
+      this.liveLoaded = true;
       this.note(`CHART DATA COMPLETE // ${data.ways.length} ROADS`);
       this.placeAt(lon, lat);
       this.#loadBuildings(lat, lon);
+      if (keep) {
+        const [x, y] = this.net.proj.toXY(keep.lon, keep.lat);
+        if (this.route({ x, y, name: keep.name }) && wasNavigating) this.start();
+      }
+      return true;
     } catch (e) {
-      this.note(`MAP DOWNLOAD FAILED // ${String(e.message || e).toUpperCase()}`, "alert");
+      this.note(`MAP DOWNLOAD FAILED // ${String(e.message || e).toUpperCase()} // TRY DEMO CITY IN SETTINGS`, "alert");
+      return false;
     } finally { this.loadingArea = false; this.changed(); }
+  }
+  #destLonLat() {
+    const d = this.session.destination; if (!d) return null;
+    const [lon, lat] = this.net.proj.toLonLat(d.x, d.y);
+    return { lon, lat, name: d.label };
   }
 
   goDemo() {
@@ -155,8 +178,9 @@ export class Controller {
         const [lon, lat] = this.net.proj.toLonLat(p.x, p.y);
         online = (await searchPlaces(query, lat, lon, { limit: 5 })).map(r => {
           const [x, y] = this.net.proj.toXY(r.lon, r.lat);
-          return { ...r, x, y, distance: Math.hypot(x - p.x, y - p.y), inData: !this.#outsideData(r.lon, r.lat) };
-        }).filter(r => r.inData);
+          const inData = !this.#outsideData(r.lon, r.lat, 300);
+          return { ...r, x, y, distance: Math.hypot(x - p.x, y - p.y), inData, detail: inData ? r.detail : `${r.detail} · FETCH ROUTE` };
+        }).filter(r => r.inData || (this.source === "live" && r.distance < 60000));
       } catch { /* offline: local results only */ }
     }
     const seen = new Set(), out = [];
@@ -166,6 +190,12 @@ export class Controller {
 
   route(dest) {
     this.lastError = null;
+    // A live search result outside the loaded roads: download a corridor first, then plan.
+    if (dest.inData === false && dest.lat != null && this.source === "live" && this.session.position) {
+      const [lon, lat] = this.net.proj.toLonLat(this.session.position.x, this.session.position.y);
+      this.loadLiveArea(lat, lon, { lat: dest.lat, lon: dest.lon, name: dest.name });
+      return false;
+    }
     if (!this.session.position) this.placeAt(DEMO_START.lon, DEMO_START.lat);
     const ok = this.session.setDestination({ x: dest.x, y: dest.y, label: dest.name ?? dest.label ?? "DROPPED PIN" });
     this.changed();
