@@ -1,0 +1,16 @@
+name: Android APK
+on:
+  push:
+    branches: [main, "prototype/**"]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Probe environment
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"; ls $ANDROID_HOME/platforms || true; ls $ANDROID_HOME/build-tools || true
+          java -version; which gradle || true
