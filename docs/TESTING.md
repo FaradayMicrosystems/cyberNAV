@@ -4,7 +4,7 @@ Three ways in, quickest first.
 
 ## 1. Browser (no install)
 
-Open the simulator link from the project thread, or run it locally:
+Open the browser simulator at https://claude.ai/artifact/Qc8a6WCD53WZuQCFXgx1rf (demo city only; live OpenStreetMap search needs the APK or a local run), or run it locally:
 
 ```
 cd simulator && python3 -m http.server 8765
@@ -52,7 +52,7 @@ In the car: **Search** opens the car keyboard, results route straight to a 3-rou
 
 | Works | Not in the prototype |
 | --- | --- |
-| Routing on real OSM roads, one-ways, 3 alternatives, avoid motorways | Live traffic (needs Mapbox or another paid feed) |
+| Routing on real OSM roads, one-ways, 3 alternatives, avoid motorways; trips beyond the loaded 6 km fetch a road corridor | Live traffic (needs Mapbox or another paid feed) |
 | Turn-by-turn, roundabout exits, voice prompts, rerouting | Lane guidance (data not loaded) |
 | GPS dropouts, jumps, noise, stationary jitter handled | Offline maps for live mode |
 | 3D wireframe buildings from OSM (placeholder blocks when offline) | Place details, reviews, photos |
