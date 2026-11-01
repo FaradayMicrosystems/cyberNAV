@@ -2,7 +2,7 @@ name: Build cyberNAV
 
 # Fetches OsmAnd at the commits pinned in osmand-skin/versions.env, applies the Phosphor HUD
 # skin (osmand-skin/apply.sh), builds an arm64 debug APK and publishes it as the
-# "cybernav-latest" release. OsmAnd: https://github.com/osmandapp/OsmAnd (GPLv3).
+# release "cyberNAV v0.N" (tag v0.N; N starts at 6 and goes up by one per release). OsmAnd: https://github.com/osmandapp/OsmAnd (GPLv3).
 on:
   push:
     branches: [main, cybernav-osmand]
@@ -48,11 +48,19 @@ jobs:
           python3 skin/osmand-skin/core/patch_core.py cybernav-core/original.aar cybernav-core/OsmAndCore_androidNativeRelease.aar
       - name: Apply the cyberNAV skin
         run: bash skin/osmand-skin/apply.sh android resources cybernav-core/OsmAndCore_androidNativeRelease.aar
+      - name: Pick the version (v0.6, then +1 per release)
+        id: ver
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          last=$(gh api "repos/${{ github.repository }}/releases?per_page=100" --jq '.[].tag_name' | grep -E '^v0\.[0-9]+$' | sed 's/^v0\.//' | sort -n | tail -1)
+          n=$(( ${last:-5} + 1 ))
+          echo "n=$n" >> "$GITHUB_OUTPUT"
+          echo "Releasing cyberNAV v0.$n"
       - name: Build APK (OpenGL renderer with 3D buildings, arm64)
         working-directory: android
         env:
-          APK_NUMBER_VERSION: ${{ github.run_number }}
-          APK_VERSION_SUFFIX: -cybernav.${{ github.run_number }}
+          APK_NUMBER_VERSION: ${{ steps.ver.outputs.n }}
+          APK_VERSION: "0.${{ steps.ver.outputs.n }}"
         run: |
           printf "\norg.gradle.jvmargs=-Xmx6g -Dfile.encoding=UTF-8\n" >> gradle.properties
           chmod +x gradlew
@@ -68,7 +76,8 @@ jobs:
         env: { GH_TOKEN: "${{ github.token }}" }
         working-directory: skin
         run: |
-          gh release delete cybernav-latest --yes --cleanup-tag || true
-          gh release create cybernav-latest ../cyberNAV.apk --prerelease --target "$GITHUB_SHA" \
-            --title "cyberNAV" \
-            --notes "cyberNAV build=${{ github.run_number }}. Credits and licence: see the README."
+          n=${{ steps.ver.outputs.n }}
+          cp ../cyberNAV.apk "../cyberNAV-v0.$n.apk"
+          gh release create "v0.$n" "../cyberNAV-v0.$n.apk" --latest --target "$GITHUB_SHA" \
+            --title "cyberNAV v0.$n" \
+            --notes "cyberNAV v0.$n (build=$n, read by the in-app updater). Credits and licence: see the README."

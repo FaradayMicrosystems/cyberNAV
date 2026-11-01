@@ -11,7 +11,7 @@ The main cyberNAV app is **[OsmAnd](https://github.com/osmandapp/OsmAnd)** (OSM 
 - Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors (ODbL).
 - cyberNAV is not affiliated with or endorsed by OsmAnd BV, and it doesn't use the OsmAnd name or logo.
 
-**Download:** https://github.com/FaradayMicrosystems/cyberNAV/releases/tag/cybernav-latest (built by GitHub Actions from [`osmand-skin/`](osmand-skin/)).
+**Download:** https://github.com/FaradayMicrosystems/cyberNAV/releases/latest (built by GitHub Actions from [`osmand-skin/`](osmand-skin/)).
 
 ```
 CYBERNAV // NAV PLOT LIVE

@@ -40,13 +40,13 @@ import java.util.regex.Pattern;
 
 /**
  * cyberNAV in-app updates. cyberNAV is sideloaded, so it updates itself from the GitHub release
- * that CI publishes ("cybernav-latest"): on launch it compares the release's build number
+ * that CI publishes (the latest "cyberNAV v0.N" release): on launch it compares the release's build number
  * with its own versionCode, shows a Phosphor HUD prompt, downloads the APK with DownloadManager
  * and hands it to Android's package installer. Part of the cyberNAV skin (GPLv3), not OsmAnd.
  */
 public final class CyberUpdater {
 	private static final String RELEASE_API =
-			"https://api.github.com/repos/FaradayMicrosystems/cyberNAV/releases/tags/cybernav-latest";
+			"https://api.github.com/repos/FaradayMicrosystems/cyberNAV/releases/latest";
 	private static final long CHECK_EVERY_MS = 60 * 60 * 1000L; // at most hourly
 	private static final String PREFS = "cybernav_updater";
 	static final int GROUND = Color.parseColor("#020503");
@@ -168,9 +168,9 @@ public final class CyberUpdater {
 		bg.setStroke((int) Math.max(1, d), PHOSPHOR);
 		box.setBackground(bg);
 
-		box.addView(text(activity, "UPDATE AVAILABLE // BUILD " + r.build, 15, PHOSPHOR, true));
+		box.addView(text(activity, "UPDATE AVAILABLE // V0." + r.build, 15, PHOSPHOR, true));
 		String mb = r.size > 0 ? String.format(java.util.Locale.US, "%.0f MB", r.size / 1048576.0) : "";
-		TextView body = text(activity, "A NEW CYBERNAV BUILD IS READY. " + mb + " DOWNLOAD. "
+		TextView body = text(activity, "A NEW cyberNAV BUILD IS READY. " + mb + " DOWNLOAD. "
 				+ "INSTALLING KEEPS YOUR MAPS AND SETTINGS.", 12, DIM, false);
 		body.setPadding(0, (int) (10 * d), 0, (int) (16 * d));
 		box.addView(body);
@@ -233,14 +233,14 @@ public final class CyberUpdater {
 	private static void download(Context ctx, Release r) {
 		DownloadManager dm = (DownloadManager) ctx.getSystemService(Context.DOWNLOAD_SERVICE);
 		DownloadManager.Request req = new DownloadManager.Request(Uri.parse(r.url))
-				.setTitle("cyberNAV build " + r.build)
+				.setTitle("cyberNAV v0." + r.build)
 				.setDescription("Downloading update")
 				.setMimeType("application/vnd.android.package-archive")
 				.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-				.setDestinationInExternalFilesDir(ctx, Environment.DIRECTORY_DOWNLOADS, "cyberNAV-build-" + r.build + ".apk");
+				.setDestinationInExternalFilesDir(ctx, Environment.DIRECTORY_DOWNLOADS, "cyberNAV-v0." + r.build + ".apk");
 		long id = dm.enqueue(req);
 		ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putLong("pending", id).apply();
-		Toast.makeText(ctx, "CYBERNAV // DOWNLOADING UPDATE", Toast.LENGTH_SHORT).show();
+		Toast.makeText(ctx, "cyberNAV // DOWNLOADING UPDATE", Toast.LENGTH_SHORT).show();
 		BroadcastReceiver done = new BroadcastReceiver() {
 			@Override
 			public void onReceive(Context c, Intent intent) {
@@ -251,7 +251,7 @@ public final class CyberUpdater {
 				}
 				Uri apk = dm.getUriForDownloadedFile(id);
 				if (apk == null) {
-					Toast.makeText(ctx, "CYBERNAV // UPDATE DOWNLOAD FAILED", Toast.LENGTH_LONG).show();
+					Toast.makeText(ctx, "cyberNAV // UPDATE DOWNLOAD FAILED", Toast.LENGTH_LONG).show();
 					return;
 				}
 				install(ctx, apk);
@@ -275,7 +275,7 @@ public final class CyberUpdater {
 	private static void install(Context ctx, Uri apk) {
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !ctx.getPackageManager().canRequestPackageInstalls()) {
 			// One-time permission: let cyberNAV install its own updates, then open the download again.
-			Toast.makeText(ctx, "ALLOW CYBERNAV TO INSTALL UPDATES, THEN COME BACK",
+			Toast.makeText(ctx, "ALLOW cyberNAV TO INSTALL UPDATES, THEN COME BACK",
 					Toast.LENGTH_LONG).show();
 			Intent s = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + ctx.getPackageName()));
 			s.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);

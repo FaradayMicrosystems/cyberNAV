@@ -77,7 +77,7 @@ public final class CyberCountry {
 			dialog.dismiss();
 			validation.startDownload(activity, items.toArray(new IndexItem[0]));
 			thread.initSettingsFirstMap(region);
-			Toast.makeText(activity, "CYBERNAV // DOWNLOADING " + items.size() + " MAPS", Toast.LENGTH_LONG).show();
+			Toast.makeText(activity, "cyberNAV // DOWNLOADING " + items.size() + " MAPS", Toast.LENGTH_LONG).show();
 			countryQueued.run();
 		});
 		just.setOnClickListener(v -> {
