@@ -11,6 +11,7 @@ This folder turns **[OsmAnd](https://github.com/osmandapp/OsmAnd)** (GPLv3, © O
 | 3D buildings | On by default, phosphor green at 35% opacity (OsmAnd's OpenGL renderer). | `apply.sh` step 3 |
 | App UI | Dark theme by default; dark-theme greys and accent colours moved to the HUD palette. | `recolor.py colors` |
 | Updates | On launch (at most hourly) checks the `cybernav-latest` GitHub release; if its `build=N` is newer than the installed versionCode, shows a HUD prompt (Install / Later / Skip), downloads the APK and opens Android's installer. Android asks once to allow installs from cyberNAV. | `src/.../CyberUpdater.java`, `apply.sh` step 6 |
+| First run | When OsmAnd's start wizard finds your region's map and your country has several maps, a HUD prompt offers **Whole country** (all maps, total size) or **Just this region**. | `src/.../CyberCountry.java`, `apply.sh` step 7 |
 | Name and icon | App name "cyberNAV", app id `net.faradaymicrosystems.cybernav` (installs next to OsmAnd), wireframe navigation icon. | `apply.sh` steps 2 and 5 |
 
 Navigation behaviour is OsmAnd's own and is not modified.

@@ -50,8 +50,11 @@ cp "$SKIN/res/mipmap-anydpi-v26/icon_nightly.xml" "$APP/res/mipmap-anydpi-v26/ic
 
 echo "6. In-app updates from GitHub releases"
 mkdir -p "$APP/src/net/osmand/plus/cybernav"
-cp "$SKIN/src/net/osmand/plus/cybernav/CyberUpdater.java" "$APP/src/net/osmand/plus/cybernav/"
+cp "$SKIN"/src/net/osmand/plus/cybernav/*.java "$APP/src/net/osmand/plus/cybernav/"
 edit "$APP/AndroidManifest.xml" '(\n(\s*)<uses-permission android:name="android\.permission\.INTERNET" />)' '\1\n\2<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />'
 edit "$APP/src/net/osmand/plus/activities/MapActivity.java" '(protected void onResume\(\) \{\n\t\tsuper\.onResume\(\);)' '\1\n\t\tnet.osmand.plus.cybernav.CyberUpdater.check(this);'
+
+echo "7. First run: offer the whole country, not just the region"
+edit "$APP/src/net/osmand/plus/firstusage/FirstUsageWizardFragment.java" '(\t\t\tif \(mapIndexItem != null\) \{\n)\t\t\t\tshowMapFoundWizard\(true\);(\n\t\t\t\} else \{\n\t\t\t\tcloseWizard\(\);)' '\1\t\t\t\tif (!net.osmand.plus.cybernav.CyberCountry.offer(getActivity(), downloadThread, validationManager, mapDownloadRegion, mapIndexItem,\n\t\t\t\t\t\t() -> showMapFoundWizard(true), () -> { mapDownloadCancelled = true; closeWizard(); })) {\n\t\t\t\t\tshowMapFoundWizard(true);\n\t\t\t\t}\2'
 
 echo "Skin applied."

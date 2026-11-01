@@ -49,10 +49,10 @@ public final class CyberUpdater {
 			"https://api.github.com/repos/FaradayMicrosystems/cyberNAV/releases/tags/cybernav-latest";
 	private static final long CHECK_EVERY_MS = 60 * 60 * 1000L; // at most hourly
 	private static final String PREFS = "cybernav_updater";
-	private static final int GROUND = Color.parseColor("#020503");
-	private static final int PANEL = Color.parseColor("#07140A");
-	private static final int PHOSPHOR = Color.parseColor("#B8FF7A");
-	private static final int DIM = Color.parseColor("#4E7A2C");
+	static final int GROUND = Color.parseColor("#020503");
+	static final int PANEL = Color.parseColor("#07140A");
+	static final int PHOSPHOR = Color.parseColor("#B8FF7A");
+	static final int DIM = Color.parseColor("#4E7A2C");
 
 	private static boolean running;
 
@@ -135,6 +135,27 @@ public final class CyberUpdater {
 
 	// ---------- Phosphor HUD prompt ----------
 
+	/** HUD panel: dark green box with a 1 dp phosphor border. */
+	static LinearLayout panel(Context ctx) {
+		float d = ctx.getResources().getDisplayMetrics().density;
+		LinearLayout box = new LinearLayout(ctx);
+		box.setOrientation(LinearLayout.VERTICAL);
+		int pad = (int) (20 * d);
+		box.setPadding(pad, pad, pad, pad);
+		GradientDrawable bg = new GradientDrawable();
+		bg.setColor(PANEL);
+		bg.setStroke((int) Math.max(1, d), PHOSPHOR);
+		box.setBackground(bg);
+		return box;
+	}
+
+	static AlertDialog show(Activity activity, LinearLayout box) {
+		AlertDialog dialog = new AlertDialog.Builder(activity).setView(box).create();
+		dialog.show();
+		if (dialog.getWindow() != null) dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+		return dialog;
+	}
+
 	private static void prompt(Activity activity, Release r) {
 		if (activity.isFinishing() || activity.isDestroyed()) return;
 		float d = activity.getResources().getDisplayMetrics().density;
@@ -178,7 +199,7 @@ public final class CyberUpdater {
 		if (dialog.getWindow() != null) dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
 	}
 
-	private static TextView text(Context ctx, String s, int sp, int color, boolean bold) {
+	static TextView text(Context ctx, String s, int sp, int color, boolean bold) {
 		TextView t = new TextView(ctx);
 		t.setText(s);
 		t.setTextColor(color);
@@ -188,7 +209,7 @@ public final class CyberUpdater {
 		return t;
 	}
 
-	private static Button button(Context ctx, String s, boolean primary, float d) {
+	static Button button(Context ctx, String s, boolean primary, float d) {
 		Button b = new Button(ctx);
 		b.setText(s);
 		b.setAllCaps(true);
