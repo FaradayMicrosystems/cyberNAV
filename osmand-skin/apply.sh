@@ -28,9 +28,9 @@ edit "$APP/build.gradle" 'applicationId "net\.osmand\.dev"' "applicationId \"$AP
 edit "$APP/build.gradle" 'resValue "string", "app_name", "OsmAnd Nightly"' 'resValue "string", "app_name", "cyberNAV"'
 edit "$APP/AndroidManifest-nightlyFree.xml" 'android:authorities="net\.osmand\.dev\.fileprovider"' "android:authorities=\"$APP_ID.fileprovider\""
 
-echo "3. Defaults: night map, dark app theme, 3D buildings on, phosphor buildings"
+echo "3. Defaults: map follows sunrise/sunset (night HUD after dark, light mode by day), dark app theme, 3D buildings on"
 S="$APP/src/net/osmand/plus/settings/backend/OsmandSettings.java"
-edit "$S" '"daynight_mode", DayNightMode\.DAY,' '"daynight_mode", DayNightMode.NIGHT,'
+edit "$S" '"daynight_mode", DayNightMode\.DAY,' '"daynight_mode", DayNightMode.AUTO,'
 edit "$S" '"osmand_theme", isSupportSystemTheme\(\) \? SYSTEM_DEFAULT_THEME : OSMAND_LIGHT_THEME\)' '"osmand_theme", OSMAND_DARK_THEME)'
 edit "$S" '"enable_3d_map_objects", false\)' '"enable_3d_map_objects", true)'
 edit "$S" 'BUILDINGS_3D_DEFAULT_COLOR = 0x666666;' 'BUILDINGS_3D_DEFAULT_COLOR = 0x2F6B1F;'
@@ -49,11 +49,6 @@ edit "$S" '(private CommonPreference<Boolean> registerCustomRenderBooleanPropert
 # Upgrades: move settings saved by older versions to the new defaults, once
 edit "$APP/src/net/osmand/plus/activities/MapActivity.java" '(\n\t\tsuper\.onCreate\(savedInstanceState\);)' '\1\n\t\tnet.osmand.plus.cybernav.CyberMigrate.run(app);'
 
-echo "3b. Night palette everywhere (phone map, app and Android Auto): the HUD is night-only"
-D="$APP/src/net/osmand/plus/helpers/DayNightHelper.java"
-edit "$D" '(@NonNull ThemeUsageContext usageContext, boolean checkCarSettings\) \{)' '\1\n\t\tif (true) return true; // cyberNAV: Phosphor HUD is night-only'
-edit "$D" '(public boolean isNightModeForCar\(@NotNull CarContext carContext\) \{)' '\1\n\t\tif (true) return true; // cyberNAV: Phosphor HUD is night-only'
-
 echo "4. App theme colours (dark theme only)"
 python3 "$SKIN/recolor.py" colors "$APP/res/values/colors.xml"
 
@@ -65,7 +60,7 @@ echo "6. In-app updates from GitHub releases"
 mkdir -p "$APP/src/net/osmand/plus/cybernav"
 cp "$SKIN"/src/net/osmand/plus/cybernav/*.java "$APP/src/net/osmand/plus/cybernav/"
 edit "$APP/AndroidManifest.xml" '(\n(\s*)<uses-permission android:name="android\.permission\.INTERNET" />)' '\1\n\2<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />'
-edit "$APP/src/net/osmand/plus/activities/MapActivity.java" '(protected void onResume\(\) \{\n\t\tsuper\.onResume\(\);)' '\1\n\t\tnet.osmand.plus.cybernav.CyberUpdater.check(this);'
+edit "$APP/src/net/osmand/plus/activities/MapActivity.java" '(protected void onResume\(\) \{\n\t\tsuper\.onResume\(\);)' '\1\n\t\tnet.osmand.plus.cybernav.CyberUpdater.check(this);\n\t\tnet.osmand.plus.cybernav.CyberMigrate.addDayNightButton(app);'
 
 echo "7. First run: offer the whole country, not just the region"
 edit "$APP/src/net/osmand/plus/firstusage/FirstUsageWizardFragment.java" '(\t\t\tif \(mapIndexItem != null\) \{\n)\t\t\t\tshowMapFoundWizard\(true\);(\n\t\t\t\} else \{\n\t\t\t\tcloseWizard\(\);)' '\1\t\t\t\tif (!net.osmand.plus.cybernav.CyberCountry.offer(getActivity(), downloadThread, validationManager, mapDownloadRegion, mapIndexItem,\n\t\t\t\t\t\t() -> showMapFoundWizard(true), () -> { mapDownloadCancelled = true; closeWizard(); })) {\n\t\t\t\t\tshowMapFoundWizard(true);\n\t\t\t\t}\2'

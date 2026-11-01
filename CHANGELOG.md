@@ -2,6 +2,12 @@
 
 Every change gets its own version: v0.0.N, one higher per release. GitHub Actions picks the number and publishes each release with the list of commits it contains; this file keeps the human-readable history. Downloads: https://github.com/FaradayMicrosystems/cyberNAV/releases
 
+## v0.0.9 (2026-11-01)
+
+- Light mode for daylight: the map in dark phosphor ink on pale paper, alongside the night HUD.
+- Map mode defaults to Auto (light by day, night HUD after sunset); a DAY / NIGHT button on the map flips it by hand. Configure map > Map mode also offers Day, Night and Light sensor.
+- Android Auto switches with the car's day/night (or its own Day/Night setting) instead of always night.
+
 ## v0.0.8 (2026-11-01)
 
 - Map always opens in 3D perspective, also after upgrading from an older version (a saved flat view is no longer restored).

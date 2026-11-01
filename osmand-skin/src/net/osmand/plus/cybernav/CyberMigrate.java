@@ -7,6 +7,9 @@ import net.osmand.core.android.MapRendererContext;
 import net.osmand.core.android.MapRendererView;
 import net.osmand.plus.views.corenative.NativeCoreContext;
 import net.osmand.plus.OsmandApplication;
+import net.osmand.plus.quickaction.MapButtonsHelper;
+import net.osmand.plus.quickaction.actions.DayNightModeAction;
+import net.osmand.plus.views.mapwidgets.configure.buttons.QuickActionButtonState;
 import net.osmand.plus.settings.backend.ApplicationMode;
 import net.osmand.plus.settings.backend.OsmandSettings;
 
@@ -38,5 +41,30 @@ public final class CyberMigrate {
 			view.set3DBuildingsDetalization(FAR_BUILDINGS);
 		}
 		p.edit().putBoolean("v8_buildings_tilt", true).apply();
+	}
+
+	/**
+	 * Adds a DAY / NIGHT button to the map HUD once: one tap flips between the light (day) map and
+	 * the night HUD map. It is an ordinary OsmAnd custom map button, so it can be moved or removed
+	 * under Configure screen. Runs from MapActivity.onResume, once the map buttons are set up.
+	 */
+	public static void addDayNightButton(OsmandApplication app) {
+		SharedPreferences p = app.getSharedPreferences("cybernav_migrate", Context.MODE_PRIVATE);
+		if (p.getBoolean("v9_daynight_button", false)) {
+			return;
+		}
+		try {
+			MapButtonsHelper helper = app.getMapButtonsHelper();
+			QuickActionButtonState button = helper.createNewButtonState();
+			button.setName("DAY / NIGHT");
+			for (ApplicationMode mode : ApplicationMode.allPossibleValues()) {
+				button.getVisibilityPref().setModeValue(mode, true);
+			}
+			helper.addQuickAction(button, new DayNightModeAction());
+			helper.addQuickActionButtonState(button);
+			p.edit().putBoolean("v9_daynight_button", true).apply();
+		} catch (RuntimeException e) {
+			// Map buttons not ready yet: try again on the next resume.
+		}
 	}
 }
