@@ -46,6 +46,9 @@ jobs:
           url=https://builder.osmand.net/ivy/net.osmand/OsmAndCore_androidNativeRelease/5.4/OsmAndCore_androidNativeRelease-5.4.aar
           curl -fsSL --retry 3 -o cybernav-core/original.aar "$url"
           python3 skin/osmand-skin/core/patch_core.py cybernav-core/original.aar cybernav-core/OsmAndCore_androidNativeRelease.aar
+          # Java wrapper with the engine's resource bundle; apply.sh puts the cyberNAV map style in it
+          curl -fsSL --retry 3 -o cybernav-core/OsmAndCore_android.aar \
+            https://builder.osmand.net/ivy/net.osmand/OsmAndCore_android/5.4/OsmAndCore_android-5.4.aar
       - name: Apply the cyberNAV skin
         run: bash skin/osmand-skin/apply.sh android resources cybernav-core/OsmAndCore_androidNativeRelease.aar
       - name: Pick the version (v0.0.N, +1 per release) and collect the changes

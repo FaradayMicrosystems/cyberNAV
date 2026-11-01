@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Applies the cyberNAV Phosphor HUD skin to an OsmAnd checkout.
 #   apply.sh <OsmAnd checkout> <OsmAnd-resources checkout> [patched OsmAndCore_androidNativeRelease.aar]
+#   (with an engine AAR, OsmAndCore_android.aar must sit in the same folder; it gets the map style)
 # Every change is a small, checked edit, so a newer OsmAnd that moved something fails loudly
 # here instead of building an unskinned app.
 set -euo pipefail
@@ -69,9 +70,13 @@ echo "8. Wireframe 3D buildings: use the map engine with patched building shader
 if [ -n "$CORE_AAR" ]; then
   CORE_AAR="$(realpath "$CORE_AAR")"
   edit "$APP/build.gradle" 'dependencies\.add\("openglImplementation", "net\.osmand:OsmAndCore_androidNativeRelease:\$\{remoteAarSnapshot\}@aar"\)' "dependencies.add(\"openglImplementation\", files(\"$CORE_AAR\"))"
-  # The OpenGL map engine draws with the copy of the map style bundled inside it, not the app's
-  # copy, so put the recoloured style (step 1) into the engine's resource bundle too.
-  python3 - "$CORE_AAR" "$RES/rendering_styles/default.render.xml" <<'PY2'
+  # The OpenGL map engine draws with the copy of the map style bundled in its Java wrapper AAR
+  # (OsmAndCore_android.aar, expected next to the patched engine), not the app's copy, so put the
+  # recoloured style (step 1) into that bundle too.
+  WRAP_AAR="$(dirname "$CORE_AAR")/OsmAndCore_android.aar"
+  [ -f "$WRAP_AAR" ] || { echo "apply.sh: missing $WRAP_AAR"; exit 1; }
+  edit "$APP/build.gradle" 'dependencies\.add\("openglImplementation", "net\.osmand:OsmAndCore_android:\$\{remoteAarSnapshot\}@aar"\)' "dependencies.add(\"openglImplementation\", files(\"$WRAP_AAR\"))"
+  python3 - "$WRAP_AAR" "$RES/rendering_styles/default.render.xml" <<'PY2'
 import sys, zipfile, zlib, struct, shutil, os
 aar, style = sys.argv[1:3]
 xml = open(style, "rb").read()
