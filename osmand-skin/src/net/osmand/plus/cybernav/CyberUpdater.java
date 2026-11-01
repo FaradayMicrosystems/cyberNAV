@@ -40,13 +40,13 @@ import java.util.regex.Pattern;
 
 /**
  * cyberNAV in-app updates. cyberNAV is sideloaded, so it updates itself from the GitHub release
- * that CI publishes ("cybernav-osmand-latest"): on launch it compares the release's build number
+ * that CI publishes ("cybernav-latest"): on launch it compares the release's build number
  * with its own versionCode, shows a Phosphor HUD prompt, downloads the APK with DownloadManager
  * and hands it to Android's package installer. Part of the cyberNAV skin (GPLv3), not OsmAnd.
  */
 public final class CyberUpdater {
 	private static final String RELEASE_API =
-			"https://api.github.com/repos/FaradayMicrosystems/cyberNAV/releases/tags/cybernav-osmand-latest";
+			"https://api.github.com/repos/FaradayMicrosystems/cyberNAV/releases/tags/cybernav-latest";
 	private static final long CHECK_EVERY_MS = 60 * 60 * 1000L; // at most hourly
 	private static final String PREFS = "cybernav_updater";
 	private static final int GROUND = Color.parseColor("#020503");
