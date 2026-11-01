@@ -134,3 +134,81 @@ test("themes: switching phosphor recolours the HUD", { skip }, async () => {
   await page.evaluate(() => localStorage.clear());
   await page.close();
 });
+
+// ---------- live mode (GPS + OpenStreetMap downloads, with the map servers mocked) ----------
+async function overpassFixture() {
+  const { RoadNetwork } = await import("../core/network.js");
+  const net = new RoadNetwork((await import("../data/network.js")).default);
+  const HW = ["motorway", "primary", "tertiary", "residential"];
+  return net.ways.map(w => ({ type: "way", id: w.id + 1,
+    geometry: w.nodes.map(i => ({ lat: net.lat[i], lon: net.lon[i] })),
+    tags: { highway: HW[w.cls], ...(w.name ? { name: w.name } : {}), ...(w.oneway ? { oneway: w.oneway > 0 ? "yes" : "-1" } : {}),
+      ...(w.signedLimit ? { maxspeed: String(w.kmh) } : {}), ...(w.roundabout ? { junction: "roundabout" } : {}) } }));
+}
+const GBG = { latitude: 57.7089, longitude: 11.9737 };
+async function liveContext() {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, geolocation: GBG, permissions: ["geolocation"] });
+  const els = await overpassFixture();
+  const calls = { roads: 0, fail: false };
+  await ctx.route(/overpass|maps\.mail\.ru/, async route => {
+    const q = decodeURIComponent(route.request().postData() ?? "");
+    if (/building/.test(q)) return route.fulfill({ json: { elements: [] } });
+    calls.roads++;
+    if (calls.fail) return route.fulfill({ status: 429, body: "busy" });
+    // Stage 1 asks for ~1.5 km: send the ways near the fix; the wide request gets all.
+    const wide = /around:9000/.test(q);
+    const near = els.filter(e => wide || e.geometry.some(g => Math.abs(g.lat - GBG.latitude) < 0.012 && Math.abs(g.lon - GBG.longitude) < 0.022));
+    return route.fulfill({ json: { elements: near } });
+  });
+  await ctx.route(/nominatim/, route => route.fulfill({ json: [] }));
+  return { ctx, calls };
+}
+
+test("live: GPS fix downloads nearby roads, then the wide area, then routes", { skip }, async () => {
+  const { ctx, calls } = await liveContext();
+  const page = await ctx.newPage();
+  const errors = []; page.on("pageerror", e => errors.push(e.message));
+  await page.goto(base + "/?mode=phone&live=1&noboot=1");
+  await page.waitForFunction(() => cybernav.ctl.liveLoaded && /COMPLETE/.test(cybernav.ctl.log[0]?.text ?? "") || cybernav.ctl.log.some(l => /COMPLETE/.test(l.text)), null, { timeout: 30000 });
+  assert.equal(await page.evaluate(() => cybernav.ctl.source), "live");
+  assert.ok(await page.locator("[data-testid=chart]").isHidden(), "no-chart panel gone once roads load");
+  assert.ok(calls.roads >= 2, "staged download: nearby then wide");
+  assert.ok(await page.evaluate(() => cybernav.ctl.net.ways.length) > 3000);
+  assert.ok(await page.evaluate(() => !!localStorage.getItem("cybernav.area")), "area cached on the device");
+  await page.waitForFunction(() => cybernav.ctl.session.position);
+  await page.locator("input[type=search]").fill("Linnégatan");
+  await page.locator(".result").first().click();
+  await page.locator("[data-testid=start]").click();
+  assert.equal(await page.evaluate(() => cybernav.ctl.session.state), "NAVIGATING");
+  // The car screen is a second copy of the app: it uses the saved area, no download.
+  const before = calls.roads;
+  const car = await ctx.newPage();
+  await car.goto(base + "/?mode=car&live=1&noboot=1");
+  await car.waitForFunction(() => cybernav.ctl.liveLoaded, null, { timeout: 10000 });
+  assert.equal(calls.roads, before);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test("live: failed download says so, offers retry and demo, and recovers", { skip }, async () => {
+  const { ctx, calls } = await liveContext();
+  calls.fail = true;
+  const page = await ctx.newPage();
+  await page.goto(base + "/?mode=phone&live=1&noboot=1");
+  const chart = page.locator("[data-testid=chart]");
+  await page.waitForFunction(() => cybernav.ctl.chart?.status === "failed", null, { timeout: 30000 });
+  assert.match(await chart.innerText(), /MAP DOWNLOAD FAILED/);
+  assert.match(await chart.innerText(), /BUSY/);
+  calls.fail = false;
+  await chart.locator('[data-act="retry"]').click();
+  await page.waitForFunction(() => cybernav.ctl.liveLoaded, null, { timeout: 30000 });
+  await chart.waitFor({ state: "hidden" });
+  // Demo city button from the panel also works.
+  calls.fail = true;
+  await page.evaluate(() => { localStorage.clear(); cybernav.ctl.goDemo(); cybernav.ctl.goLive(); });
+  await page.waitForFunction(() => cybernav.ctl.chart?.status === "failed", null, { timeout: 30000 });
+  await chart.locator('[data-act="demo"]').click();
+  assert.equal(await page.evaluate(() => cybernav.ctl.source), "demo");
+  assert.ok(await chart.isHidden());
+  await ctx.close();
+});

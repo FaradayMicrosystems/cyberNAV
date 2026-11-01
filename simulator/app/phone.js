@@ -28,6 +28,7 @@ export class PhoneUI {
       <section class="ph-panel ph-panel--drop drop settings hidden" data-ref="settings" aria-label="Settings"></section>
       <section class="ph-panel turn hidden" data-ref="turn" aria-live="polite"></section>
       <div class="banner hidden" data-ref="banner"></div>
+      <section class="ph-panel chart hidden" data-ref="chart" aria-live="polite" data-testid="chart"></section>
       <section class="ph-panel sheet hidden" data-ref="sheet"></section>
       <div class="mapbtns">
         <button class="ph-btn" data-act="zoomIn" aria-label="Zoom in">+</button>
@@ -48,14 +49,14 @@ export class PhoneUI {
     this.view.onTap = (x, y) => this.#tap(x, y);
     this.#bind();
     ctl.on(what => this.render(what));
-    setInterval(() => { this.ref.clock.textContent = clockTime(new Date()); this.#status(); }, 1000);
+    setInterval(() => { this.ref.clock.textContent = clockTime(new Date()); this.#status(); if (this.ctl.chart?.retryAt) this.#chart(); }, 1000);
     if (boot) this.#boot(); else this.ref.boot.classList.add("hidden");
     this.render();
   }
 
   #boot() {
     const lines = ["NOW ENTERING GRID SECTOR 57N 011E.", "RECEIVING CHART DATA NOW.", "PRIMARY REFERENCE  CURRENT POSITION",
-      `ROADS ........ ${this.ctl.net.ways.length}`, "BUILDINGS .... 3D WIREFRAME", "GUIDANCE ..... ARMED", "CHART DATA COMPLETE // 48 TILES", "NAV PLOT LIVE"];
+      this.ctl.source === "live" ? "ROADS ........ AWAITING GPS FIX" : `ROADS ........ ${this.ctl.net.ways.length}`, "BUILDINGS .... 3D WIREFRAME", "GUIDANCE ..... ARMED", this.ctl.source === "live" ? "CHART DOWNLOAD QUEUED" : "CHART DATA COMPLETE // 48 TILES", "NAV PLOT LIVE"];
     const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
     let n = 0, i = 0;
     const step = () => {
@@ -100,6 +101,7 @@ export class PhoneUI {
         case "jump": ctl.injectJump(); break;
         case "noise": ctl.setNoise(ctl.simNoise ? 0 : 12); this.#renderSettings(); break;
         case "pinroute": this.#routePin(); break;
+        case "retry": ctl.retryChart(); break;
       }
     });
   }
@@ -157,6 +159,25 @@ export class PhoneUI {
       </div>
       <div class="empty">DEMO CITY: GÖTEBORG, BUNDLED, WORKS OFFLINE. LIVE GPS: YOUR LOCATION, DOWNLOADS ROADS AND BUILDINGS FROM OPENSTREETMAP.</div>`;
   }
+  /** Live mode before any roads are loaded: say what is happening instead of an empty grid. */
+  #chart() {
+    const c = this.ctl, ch = c.source === "live" ? c.chart : null, el = this.ref.chart;
+    el.classList.toggle("hidden", !ch);
+    this.el.classList.toggle("no-chart", !!ch);
+    if (!ch) return;
+    const secs = ch.retryAt ? Math.max(0, Math.ceil((ch.retryAt - Date.now()) / 1000)) : 0;
+    const body = {
+      gps: ["AWAITING GPS FIX", "Allow location for cyberNAV. Indoors a first fix can take a minute."],
+      loading: ["RECEIVING CHART DATA", `Downloading ${esc(ch.text ?? "roads").toLowerCase()} from OpenStreetMap.`],
+      failed: ["MAP DOWNLOAD FAILED", `${esc(ch.text)}. ${secs ? `Retrying in ${secs} s.` : "Retrying now."}`],
+    }[ch.status];
+    el.dataset.status = ch.status;
+    el.innerHTML = `<div class="ph-panel__title">${body[0]}</div><p>${body[1]}</p>
+      ${ch.status === "loading" || ch.status === "gps" ? `<div class="ph-bar ph-bar--scan"><i></i></div>` : ""}
+      <div class="row">${ch.status === "failed" ? `<button class="ph-btn grow" data-act="retry" aria-pressed="true">RETRY NOW</button>` : ""}
+      <button class="ph-btn grow" data-act="demo">DEMO CITY</button></div>`;
+  }
+
   #theme(t) {
     if (t === "nostromo") delete document.documentElement.dataset.phosphor; else document.documentElement.dataset.phosphor = t;
     try { localStorage.setItem("cybernav.phosphor", t); } catch { /* private mode */ }
@@ -165,7 +186,7 @@ export class PhoneUI {
 
   render() {
     const c = this.ctl, s = c.session, snap = s.snapshot();
-    this.ref.mode.textContent = c.loadingArea ? "LOADING" : c.source === "live" ? "LIVE" : "DEMO";
+    this.ref.mode.textContent = c.loadingArea ? "LOADING" : c.source === "live" ? (c.chart ? "NO CHART" : "LIVE") : "DEMO";
     this.el.querySelector(".attrib").textContent = c.net.attribution;
     const nav = s.state === State.NAVIGATING;
     this.el.querySelector('[data-part="top"]').classList.toggle("hidden", nav || s.state === State.ARRIVED);
@@ -186,6 +207,8 @@ export class PhoneUI {
     const banner = s.signalLost ? ["GPS SIGNAL LOST // DEAD RECKONING", "caution"] : c.rerouting ? ["REROUTING", "caution"] : c.loadingArea ? ["RECEIVING CHART DATA", ""] : null;
     b.classList.toggle("hidden", !banner);
     if (banner) { b.textContent = banner[0]; b.className = `banner ${banner[1]}`; }
+
+    this.#chart();
 
     // Bottom sheet
     const sh = this.ref.sheet;

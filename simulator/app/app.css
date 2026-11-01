@@ -120,3 +120,14 @@ button{font:inherit}
 .host-tag{position:absolute;left:8px;top:100%;margin-top:4px;font:11px Roboto,system-ui,sans-serif;color:#888;pointer-events:none}
 
 @media (prefers-reduced-motion:reduce){.boot{transition:none}}
+
+/* Live mode with no roads yet: panel in the middle, map hidden so the demo city never shows. */
+.chart{position:absolute;left:16px;right:16px;top:38%;z-index:4;display:flex;flex-direction:column;gap:10px}
+.chart p{margin:0;font-family:var(--font-mono);font-size:13px;line-height:1.5;letter-spacing:.04em;color:var(--fg-dim,var(--phosphor))}
+.chart[data-status="failed"] .ph-panel__title{color:var(--signal-alert)}
+.chart .row{display:flex;gap:8px}
+.no-chart .mapbtns,.no-chart .attrib{display:none}
+.ph-bar--scan{height:4px;overflow:hidden;position:relative}
+.ph-bar--scan i{position:absolute;inset:0 auto 0 0;width:30%;background:var(--phosphor);animation:chartscan 1.4s linear infinite}
+@keyframes chartscan{from{transform:translateX(-100%)}to{transform:translateX(340%)}}
+@media (prefers-reduced-motion: reduce){.ph-bar--scan i{animation:none;width:100%;opacity:.5}}

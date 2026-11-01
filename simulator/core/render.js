@@ -99,13 +99,14 @@ export class MapRenderer {
   draw(scene) {
     const t0 = performance.now();
     const { ctx, cam, theme: T, net } = this;
-    if (!T || !net) return;
+    if (!T) return;
     this.resize();
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     cam.setup(this.w, this.h);
     ctx.fillStyle = T.ground; ctx.fillRect(0, 0, this.w, this.h);
     const box = cam.visibleBox(this.car ? 2200 : 4000);
     this.#grid(box);
+    if (!net) { this.stats.ways = 0; return; } // no chart data yet: grid only
     const ways = net.waysIn(...box);
     this.stats.ways = ways.length;
     this.#roads(ways);

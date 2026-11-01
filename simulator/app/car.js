@@ -29,7 +29,10 @@ export class CarSurface {
     const c = this.ctl, s = c.session, snap = s.snapshot();
     const kmh = Math.round((s.position?.speed ?? 0) * 3.6);
     this.ref.speedo.innerHTML = s.state === State.NAVIGATING ? `${kmh}<small>KM/H</small>${snap.speedLimit ? `<span class="limit">${snap.speedLimit}</span>` : ""}` : "";
-    this.ref.line.textContent = s.state === State.NAVIGATING ? `CYBERNAV // ${(snap.street || "EN ROUTE").toUpperCase()}` : c.source === "live" ? "CYBERNAV // LIVE GPS" : "CYBERNAV // DEMO CITY";
+    const ch = c.source === "live" ? c.chart : null;
+    this.el.classList.toggle("no-chart", !!ch);
+    this.ref.line.textContent = ch ? `CYBERNAV // ${{ gps: "AWAITING GPS FIX", loading: "RECEIVING CHART DATA", failed: "MAP DOWNLOAD FAILED // RETRYING" }[ch.status]}`
+      : s.state === State.NAVIGATING ? `CYBERNAV // ${(snap.street || "EN ROUTE").toUpperCase()}` : c.source === "live" ? "CYBERNAV // LIVE GPS" : "CYBERNAV // DEMO CITY";
     const banner = s.signalLost ? "GPS SIGNAL LOST" : c.rerouting ? "REROUTING" : null;
     this.ref.banner.classList.toggle("hidden", !banner);
     if (banner) { this.ref.banner.textContent = banner; this.ref.banner.className = "banner caution"; }

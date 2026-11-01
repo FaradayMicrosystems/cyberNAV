@@ -13,9 +13,9 @@ async function overpass(query, { timeoutMs = 30000, fetchImpl = globalThis.fetch
     try {
       const res = await fetchImpl(url, { method: "POST", body: "data=" + encodeURIComponent(query),
         headers: { "Content-Type": "application/x-www-form-urlencoded" }, signal: ctl?.signal });
-      if (!res.ok) throw new Error(`Overpass ${res.status}`);
+      if (!res.ok) throw new Error(res.status === 429 ? "MAP SERVER BUSY (429)" : res.status >= 500 ? `MAP SERVER DOWN (${res.status})` : `MAP SERVER ${res.status}`);
       return await res.json();
-    } catch (e) { lastErr = e; } finally { if (timer) clearTimeout(timer); }
+    } catch (e) { lastErr = e.name === "AbortError" ? new Error("MAP SERVER TIMED OUT") : e instanceof TypeError ? new Error("NO INTERNET OR MAP SERVER BLOCKED") : e; } finally { if (timer) clearTimeout(timer); }
   }
   throw lastErr ?? new Error("Overpass unavailable");
 }
@@ -26,12 +26,18 @@ export function overpassWays(json) {
     .map(e => ({ id: e.id, coords: e.geometry.map(g => [g.lon, g.lat]), tags: e.tags || {} }));
 }
 
-/** Drivable roads within radius metres of lat/lon, packed for RoadNetwork. */
-export async function fetchRoads(lat, lon, radius = 5000, opts) {
-  const hw = [...DRIVABLE].join("|");
-  const q = `[out:json][timeout:40];way["highway"~"^(${hw})$"](around:${Math.round(radius)},${lat},${lon});out geom tags;`;
-  const ways = overpassWays(await overpass(q, opts));
-  return packRoads(ways, "Road data © OpenStreetMap contributors (ODbL), live via Overpass API.");
+const MAIN = "motorway|motorway_link|trunk|trunk_link|primary|primary_link|secondary|secondary_link|tertiary|tertiary_link";
+
+/**
+ * Drivable roads around lat/lon, packed for RoadNetwork: every street within `near` metres,
+ * plus main roads (tertiary and up) within `far` metres when far > near.
+ */
+export async function fetchRoads(lat, lon, { near = 1500, far = 0, ...opts } = {}) {
+  const all = [...DRIVABLE].join("|");
+  let q = `way["highway"~"^(${all})$"](around:${Math.round(near)},${lat},${lon});`;
+  if (far > near) q += `way["highway"~"^(${MAIN})$"](around:${Math.round(far)},${lat},${lon});`;
+  const json = await overpass(`[out:json][timeout:40];(${q});out geom tags;`, opts);
+  return packRoads(overpassWays(json), "Road data © OpenStreetMap contributors (ODbL), live via Overpass API.");
 }
 
 /**
@@ -43,8 +49,7 @@ export async function fetchCorridor(a, b, opts) {
   const s = Math.min(a.lat, b.lat) - pad, n = Math.max(a.lat, b.lat) + pad;
   const w = Math.min(a.lon, b.lon) - pad * 1.8, e = Math.max(a.lon, b.lon) + pad * 1.8;
   const all = [...DRIVABLE].join("|");
-  const main = "motorway|motorway_link|trunk|trunk_link|primary|primary_link|secondary|secondary_link|tertiary|tertiary_link";
-  const q = `[out:json][timeout:60];(way["highway"~"^(${main})$"](${s},${w},${n},${e});` +
+  const q = `[out:json][timeout:60];(way["highway"~"^(${MAIN})$"](${s},${w},${n},${e});` +
     `way["highway"~"^(${all})$"](around:2000,${a.lat},${a.lon});way["highway"~"^(${all})$"](around:2000,${b.lat},${b.lon}););out geom tags;`;
   const ways = overpassWays(await overpass(q, { timeoutMs: 60000, ...opts }));
   return packRoads(ways, "Road data © OpenStreetMap contributors (ODbL), live via Overpass API.");

@@ -37,7 +37,8 @@ export class MapView {
   tick() {
     const ctl = this.ctl, s = ctl.session, cam = this.r.cam;
     if (!this.r.w && !this.r.canvas.isConnected) return;
-    this.r.net = ctl.net; this.r.buildings = ctl.buildings;
+    const noChart = ctl.source === "live" && ctl.chart; // never show the demo city as if it were here
+    this.r.net = noChart ? null : ctl.net; this.r.buildings = noChart ? null : ctl.buildings;
     // Smooth the displayed position between 1 Hz fixes.
     const p = s.position;
     if (p) {

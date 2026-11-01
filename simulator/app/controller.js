@@ -94,16 +94,24 @@ export class Controller {
   async #onGps(p) {
     const { latitude: lat, longitude: lon, accuracy, speed, heading } = p.coords;
     this.lastGps = { lat, lon };
-    // Fetch the area around the user when there is none yet or the car is about to leave it.
-    // While navigating only refetch when truly at the edge, and never more than once a minute.
-    const now = Date.now();
-    const navigating = this.session.state === State.NAVIGATING;
-    if (this.source === "live" && !this.loadingArea && now - (this.lastAreaTry ?? 0) > 60000 &&
-        (!this.liveLoaded || this.#outsideData(lon, lat, navigating ? 150 : 800))) {
-      this.lastAreaTry = now;
-      await this.loadLiveArea(lat, lon);
-    }
     if (this.source !== "live") return;
+    if (!this.liveLoaded) {
+      // First fix: use cached roads if we have them for here, then download fresh ones.
+      if (this.#loadCache(lat, lon)) { this.#feed(lat, lon, accuracy, speed, heading); return; }
+      // The car screen runs its own copy of the app: give the phone's download a head start
+      // so both don't hit the map server at once, then use what it saved.
+      if (this.mode === "car" && Date.now() < (this.holdUntil ?? 0)) return;
+      if (!this.loadingArea && !this.retryTimer) await this.loadLiveArea(lat, lon);
+      return;
+    }
+    // Refetch when the car nears the edge of the loaded area (at most once a minute).
+    const navigating = this.session.state === State.NAVIGATING;
+    if (!this.loadingArea && Date.now() - (this.lastAreaTry ?? 0) > 60000 && this.#outsideData(lon, lat, navigating ? 150 : 800)) {
+      this.loadLiveArea(lat, lon);
+    }
+    this.#feed(lat, lon, accuracy, speed, heading);
+  }
+  #feed(lat, lon, accuracy, speed, heading) {
     const [x, y] = this.net.proj.toXY(lon, lat);
     this.session.updateLocation({ x, y, t: this.#now(), accuracy, speed: speed ?? null, heading: Number.isFinite(heading) ? heading : null });
   }
@@ -115,33 +123,85 @@ export class Controller {
   /** Switch to live mode: real GPS, roads and buildings downloaded around the user. */
   async goLive() {
     this.stopDemo();
-    this.source = "live"; this.changed();
+    this.source = "live";
+    if (!this.liveLoaded) {
+      this.chart = { status: "gps" };
+      this.session.cancel();
+    }
+    this.holdUntil = Date.now() + 15000;
     this.note("LIVE MODE // WAITING FOR GPS FIX");
+    this.changed();
     this.startGps();
   }
 
+  /**
+   * Download roads around lat/lon. The first load is staged so the map appears fast:
+   * every street within 1.5 km first (small, a few seconds), then a wider area
+   * (all streets within 3 km, main roads within 9 km), then 3D buildings.
+   * With dest, downloads a corridor to a far destination and plans the route.
+   */
   async loadLiveArea(lat, lon, dest = null) {
-    this.loadingArea = true; this.changed();
+    clearTimeout(this.retryTimer); this.retryTimer = null;
+    this.loadingArea = true; this.lastAreaTry = Date.now();
+    if (!this.liveLoaded) this.chart = { status: "loading", text: "ROADS WITHIN 1.5 KM" };
     this.note(dest ? "RECEIVING ROUTE CORRIDOR NOW." : "RECEIVING CHART DATA NOW.");
-    // Keep an active trip across the reload.
-    const keep = dest ?? (this.session.state === State.NAVIGATING || this.session.state === State.PREVIEW ? this.#destLonLat() : null);
-    const wasNavigating = this.session.state === State.NAVIGATING;
-    try {
-      const data = dest ? await fetchCorridor({ lat, lon }, dest) : await fetchRoads(lat, lon, 6000);
+    this.changed();
+    const apply = data => {
+      // Keep the trip the user has going right now (it may have started while downloading).
+      const st = this.session.state;
+      const keep = dest ?? (st === State.NAVIGATING || st === State.PREVIEW ? this.#destLonLat() : null);
+      const wasNavigating = st === State.NAVIGATING;
+      dest = null;
       this.loadNetwork(data, "live");
-      this.liveLoaded = true;
-      this.note(`CHART DATA COMPLETE // ${data.ways.length} ROADS`);
-      this.placeAt(lon, lat);
-      this.#loadBuildings(lat, lon);
+      this.liveLoaded = true; this.chart = null; this.chartFailures = 0;
+      const g = this.lastGps ?? { lat, lon };
+      this.placeAt(g.lon, g.lat);
       if (keep) {
         const [x, y] = this.net.proj.toXY(keep.lon, keep.lat);
         if (this.route({ x, y, name: keep.name }) && wasNavigating) this.start();
       }
+    };
+    try {
+      if (dest) {
+        apply(await fetchCorridor({ lat, lon }, dest));
+        this.note(`ROUTE CORRIDOR LOADED // ${this.net.ways.length} ROADS`);
+      } else {
+        const first = !this.liveLoaded;
+        if (first) {
+          apply(await fetchRoads(lat, lon, { near: 1500, timeoutMs: 25000 }));
+          this.note(`CHART DATA // ${this.net.ways.length} ROADS NEARBY`);
+        }
+        try {
+          const wide = await fetchRoads(lat, lon, { near: 3000, far: 9000, timeoutMs: 45000 });
+          apply(wide); this.#saveCache(wide, lat, lon);
+          this.note(`CHART DATA COMPLETE // ${this.net.ways.length} ROADS`);
+        } catch (e) {
+          if (!first) throw e;
+          this.note("WIDE AREA DOWNLOAD FAILED // NEARBY ROADS ONLY", "caution");
+        }
+      }
+      this.loadingArea = false;
+      const g = this.lastGps ?? { lat, lon };
+      this.#loadBuildings(g.lat, g.lon);
       return true;
     } catch (e) {
-      this.note(`MAP DOWNLOAD FAILED // ${String(e.message || e).toUpperCase()} // TRY DEMO CITY IN SETTINGS`, "alert");
+      const msg = String(e.message || e).toUpperCase();
+      this.note(`MAP DOWNLOAD FAILED // ${msg}`, "alert");
+      if (!this.liveLoaded) {
+        this.chartFailures = (this.chartFailures ?? 0) + 1;
+        const wait = Math.min(60, 10 * this.chartFailures);
+        this.chart = { status: "failed", text: msg, retryAt: Date.now() + wait * 1000 };
+        this.retryTimer = setTimeout(() => { this.retryTimer = null; this.retryChart(); }, wait * 1000);
+      }
       return false;
     } finally { this.loadingArea = false; this.changed(); }
+  }
+  /** Retry the first live download now (button on the "no chart" panel). */
+  retryChart() {
+    const g = this.lastGps;
+    if (this.source !== "live" || this.loadingArea) return;
+    if (!g) { this.chart = { status: "gps" }; this.changed(); return; }
+    this.loadLiveArea(g.lat, g.lon);
   }
   #destLonLat() {
     const d = this.session.destination; if (!d) return null;
@@ -149,8 +209,31 @@ export class Controller {
     return { lon, lat, name: d.label };
   }
 
+  // Roads from the last wide download, kept on the device so restarts (and the car screen,
+  // which runs its own copy of the app) show the map at once. One area, up to 7 days old.
+  #saveCache(data, lat, lon) {
+    try { localStorage.setItem("cybernav.area", JSON.stringify({ lat, lon, t: Date.now(), data })); }
+    catch { try { localStorage.removeItem("cybernav.area"); } catch { /* no storage */ } }
+  }
+  #loadCache(lat, lon) {
+    try {
+      const c = JSON.parse(localStorage.getItem("cybernav.area") || "null");
+      if (!c || Date.now() - c.t > 7 * 864e5) return false;
+      const d = Math.hypot((c.lat - lat) * 111320, (c.lon - lon) * 111320 * Math.cos(lat * Math.PI / 180));
+      if (d > 2000) return false;
+      this.loadNetwork(c.data, "live");
+      this.liveLoaded = true; this.chart = null;
+      this.note(`CHART DATA // ${this.net.ways.length} ROADS FROM DEVICE`);
+      this.placeAt(lon, lat);
+      this.#loadBuildings(lat, lon);
+      return true;
+    } catch { return false; }
+  }
+
   goDemo() {
     this.stopGps();
+    clearTimeout(this.retryTimer); this.retryTimer = null;
+    this.chart = null; this.liveLoaded = false;
     this.loadNetwork(demoData, "demo");
     this.placeAt(DEMO_START.lon, DEMO_START.lat);
     this.note(`DEMO MODE // ${DEMO_START.label}`);
@@ -171,7 +254,8 @@ export class Controller {
   // ---------- search and routing ----------
   async search(query) {
     const p = this.session.position ?? { x: 0, y: 0 };
-    const local = this.places.search(query, { x: p.x, y: p.y, limit: 6 }).map(r => ({ ...r, detail: r.kind === "street" ? "STREET" : "COORDINATES" }));
+    const noChart = this.source === "live" && this.chart;
+    const local = noChart ? [] : this.places.search(query, { x: p.x, y: p.y, limit: 6 }).map(r => ({ ...r, detail: r.kind === "street" ? "STREET" : "COORDINATES" }));
     let online = [];
     if (query.trim().length >= 3 && !globalThis.CYBERNAV_OFFLINE) {
       try {
@@ -196,6 +280,7 @@ export class Controller {
       this.loadLiveArea(lat, lon, { lat: dest.lat, lon: dest.lon, name: dest.name });
       return false;
     }
+    if (this.source === "live" && this.chart) { this.note("NO CHART DATA YET // WAIT FOR THE MAP TO LOAD", "caution"); return false; }
     if (!this.session.position) this.placeAt(DEMO_START.lon, DEMO_START.lat);
     const ok = this.session.setDestination({ x: dest.x, y: dest.y, label: dest.name ?? dest.label ?? "DROPPED PIN" });
     this.changed();

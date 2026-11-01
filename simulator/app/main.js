@@ -14,10 +14,12 @@ const mode = params.get("mode") || (host?.mode ? host.mode() : "sim");
 if (params.has("offline")) globalThis.CYBERNAV_OFFLINE = true;
 const root = document.getElementById("root");
 const ctl = new Controller({ mode });
+// Start: Android passes ?live=1 when location permission is granted; browsers start in demo.
+if (params.get("live") === "1") ctl.goLive(); else ctl.goDemo();
 globalThis.cybernav = { ctl };
 
 if (mode === "phone") {
-  const ui = new PhoneUI(root, ctl, { boot: !params.has("noboot") });
+  const ui = new PhoneUI(root, ctl, { boot: !["", "1", "true"].includes(params.get("noboot") ?? "x") });
   globalThis.cybernav.phone = ui;
 } else if (mode === "car") {
   const surface = new CarSurface(root, ctl);
@@ -43,7 +45,7 @@ if (mode === "phone") {
         SEARCH A STREET (TRY "LINNÉGATAN") OR TAP THE MAP, PICK A ROUTE, PRESS START. THE DEMO CAR DRIVES ITSELF.
         USE WRONG TURN, GPS DROP AND GPS JUMP TO TEST REROUTING. THE CAR SCREEN'S SEARCH AND DEMO DRIVE BUTTONS WORK TOO.</p></section></div></div></div>`;
   const sim = root.firstElementChild;
-  globalThis.cybernav.phone = new PhoneUI(sim.querySelector("#phone"), ctl, { boot: !params.has("noboot") });
+  globalThis.cybernav.phone = new PhoneUI(sim.querySelector("#phone"), ctl, { boot: !["", "1", "true"].includes(params.get("noboot") ?? "x") });
   globalThis.cybernav.car = new HeadUnitMock(sim.querySelector("#car"), ctl);
   sim.querySelector(".sim__tabs").addEventListener("click", e => {
     const b = e.target.closest("[data-tab]"); if (!b) return;
@@ -57,6 +59,4 @@ if (mode === "phone") {
   });
 }
 
-// Start: Android passes ?live=1 when location permission is granted; browsers start in demo.
-if (params.get("live") === "1") ctl.goLive(); else ctl.goDemo();
 export { ctl, DEMO_START };
