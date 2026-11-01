@@ -19,17 +19,23 @@ import net.osmand.plus.settings.backend.OsmandSettings;
  */
 public final class CyberMigrate {
 	private static final int FAR_BUILDINGS = 2; // OsmAnd's 3D buildings view distance: 1 = near, 2 = far (max)
-	private static final float TILT = 40f;      // elevation angle; 90 = flat
+	private static final float TILT = 55f;      // elevation angle; 90 = straight down (flat map)
 
 	private CyberMigrate() {
 	}
 
 	public static void run(OsmandApplication app) {
 		SharedPreferences p = app.getSharedPreferences("cybernav_migrate", Context.MODE_PRIVATE);
+		OsmandSettings settings = app.getSettings();
+		if (!p.getBoolean("v11_gentler_tilt", false)) { // v0.0.11: 40 -> 55, a gentler 3D angle
+			for (ApplicationMode mode : ApplicationMode.allPossibleValues()) {
+				settings.setLastKnownMapElevation(mode, TILT);
+			}
+			p.edit().putBoolean("v11_gentler_tilt", true).apply();
+		}
 		if (p.getBoolean("v8_buildings_tilt", false)) {
 			return;
 		}
-		OsmandSettings settings = app.getSettings();
 		for (ApplicationMode mode : ApplicationMode.allPossibleValues()) {
 			settings.BUILDINGS_3D_VIEW_DISTANCE.setModeValue(mode, FAR_BUILDINGS);
 			settings.setLastKnownMapElevation(mode, TILT);

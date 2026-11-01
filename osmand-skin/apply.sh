@@ -39,8 +39,8 @@ edit "$S" 'BUILDINGS_3D_ALPHA_DEF_VALUE = 0\.5f;' 'BUILDINGS_3D_ALPHA_DEF_VALUE 
 
 echo "3a. Map faces the direction of travel (not compass), tilted in 3D perspective"
 edit "$S" '"rotate_map", ROTATE_MAP_MANUAL\)' '"rotate_map", ROTATE_MAP_BEARING)'
-edit "$S" '"last_known_map_elevation", 90\)' '"last_known_map_elevation", 40)'
-edit "$S" '"last_known_aa_map_elevation", 90\)' '"last_known_aa_map_elevation", 40)'
+edit "$S" '"last_known_map_elevation", 90\)' '"last_known_map_elevation", 55)'
+edit "$S" '"last_known_aa_map_elevation", 90\)' '"last_known_aa_map_elevation", 55)'
 # A saved flat view (90) is never restored: the map always opens in 3D perspective
 edit "$S" 'return Float\.isNaN\(elevation\) \? preference\.getProfileDefaultValue\(appMode\) : elevation;' 'return Float.isNaN(elevation) || elevation >= 90 ? preference.getProfileDefaultValue(appMode) : elevation; // cyberNAV: always open in 3D'
 # 3D buildings drawn to the far (maximum) view distance
