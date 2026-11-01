@@ -1,0 +1,129 @@
+name: Build cyberNAV
+
+# Fetches OsmAnd at the commits pinned in osmand-skin/versions.env, applies the Phosphor HUD
+# skin (osmand-skin/apply.sh), builds an arm64 debug APK and publishes it as the
+# release "cyberNAV v0.0.N" (every change gets its own version; notes list the commits). OsmAnd: https://github.com/osmandapp/OsmAnd (GPLv3).
+on:
+  push:
+    branches: [main, cybernav-osmand]
+    paths: ["osmand-skin/**", ".github/workflows/osmand.yml", "CHANGELOG.md"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: osmand-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+        with: { path: skin, fetch-depth: 0 }
+      - name: Read pinned OsmAnd versions
+        id: v
+        run: cat skin/osmand-skin/versions.env | grep -v '^#' >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with: { repository: osmandapp/OsmAnd, ref: "${{ steps.v.outputs.OSMAND_REF }}", path: android }
+      - uses: actions/checkout@v4
+        with: { repository: osmandapp/OsmAnd-resources, ref: "${{ steps.v.outputs.OSMAND_RESOURCES_REF }}", path: resources }
+      - uses: actions/checkout@v4
+        with: { repository: osmandapp/OsmAnd-core-legacy, ref: "${{ steps.v.outputs.OSMAND_CORE_LEGACY_REF }}", path: core-legacy }
+      - uses: actions/checkout@v4
+        with: { repository: osmandapp/OsmAnd-core, ref: "${{ steps.v.outputs.OSMAND_CORE_REF }}", path: core }
+      - uses: actions/checkout@v4
+        with: { repository: osmandapp/OsmAnd-build, ref: "${{ steps.v.outputs.OSMAND_BUILD_REF }}", path: build }
+      - name: Free disk space
+        run: sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost "$AGENT_TOOLSDIRECTORY" || true
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - name: Patch the map engine (wireframe 3D buildings, taller short buildings)
+        run: |
+          mkdir -p cybernav-core
+          url=https://builder.osmand.net/ivy/net.osmand/OsmAndCore_androidNativeRelease/5.4/OsmAndCore_androidNativeRelease-5.4.aar
+          curl -fsSL --retry 3 -o cybernav-core/original.aar "$url"
+          python3 skin/osmand-skin/core/patch_core.py cybernav-core/original.aar cybernav-core/OsmAndCore_androidNativeRelease.aar
+          # Java wrapper with the engine's resource bundle; apply.sh puts the cyberNAV map style in it
+          curl -fsSL --retry 3 -o cybernav-core/OsmAndCore_android.aar \
+            https://builder.osmand.net/ivy/net.osmand/OsmAndCore_android/5.4/OsmAndCore_android-5.4.aar
+      - name: Apply the cyberNAV skin
+        run: bash skin/osmand-skin/apply.sh android resources cybernav-core/OsmAndCore_androidNativeRelease.aar
+      - name: Pick the version (v0.0.N, +1 per release) and collect the changes
+        id: ver
+        env: { GH_TOKEN: "${{ github.token }}" }
+        working-directory: skin
+        run: |
+          repo=${{ github.repository }}
+          # One-time rename: the first release went out as v0.6; it is v0.0.6 in the per-change scheme.
+          if gh release view v0.6 -R "$repo" >/dev/null 2>&1; then
+            gh release edit v0.6 -R "$repo" --tag v0.0.6 --title "cyberNAV v0.0.6"
+            gh api -X DELETE "repos/$repo/git/refs/tags/v0.6" || true
+          fi
+          tags=$(gh api "repos/$repo/releases?per_page=100" --jq '.[].tag_name')
+          last=$(echo "$tags" | grep -E '^v0\.0\.[0-9]+$' | sed 's/^v0\.0\.//' | sort -n | tail -1)
+          n=$(( ${last:-5} + 1 ))
+          echo "n=$n" >> "$GITHUB_OUTPUT"
+          echo "name=0.0.$n" >> "$GITHUB_OUTPUT"
+          # Release notes: every commit since the previous release.
+          prev=$(gh api "repos/$repo/git/ref/tags/v0.0.$last" --jq .object.sha 2>/dev/null || true)
+          {
+            echo "## cyberNAV v0.0.$n"
+            echo
+            if [ -n "$prev" ] && git cat-file -e "$prev" 2>/dev/null; then
+              git log --no-merges --pretty='- %s' "$prev..HEAD"
+            else
+              git log --no-merges --pretty='- %s' -1
+            fi
+            echo
+            echo "build=$n (read by the in-app updater). Full history: CHANGELOG.md. Credits and licence: README."
+          } > ../notes.md
+          cat ../notes.md
+      - name: Build APK (OpenGL renderer with 3D buildings, arm64)
+        working-directory: android
+        env:
+          APK_NUMBER_VERSION: ${{ steps.ver.outputs.n }}
+          APK_VERSION: "${{ steps.ver.outputs.name }}"
+        run: |
+          printf "\norg.gradle.jvmargs=-Xmx6g -Dfile.encoding=UTF-8\n" >> gradle.properties
+          chmod +x gradlew
+          ./gradlew --no-daemon --stacktrace assembleNightlyFreeOpenglArm64Debug
+      - name: Collect APK
+        run: |
+          apk=$(find android/OsmAnd/build/outputs/apk -name '*.apk' | head -1)
+          echo "Built $apk"; ls -la "$apk"
+          cp "$apk" cyberNAV.apk
+      - name: Check it installs over the previous version (same signing key, higher version)
+        run: |
+          signer=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/apksigner
+          "$signer" verify --print-certs cyberNAV.apk | tee certs.txt
+          # OsmAnd's fixed debug key (android/keystores/debug.keystore). Every cyberNAV release must use it,
+          # or Android refuses to update and asks to uninstall first.
+          grep -qi "SHA-256 digest: 3465867d3403deb7a32472c8cee2acb8f8a876d5ffaccfcde51f2829bb6d03c7" certs.txt \
+            || { echo "::error::APK is signed with a different key; it would not install over cyberNAV"; exit 1; }
+          aapt=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/aapt
+          "$aapt" dump badging cyberNAV.apk | head -1 | tee badging.txt
+          grep -q "name='net.faradaymicrosystems.cybernav' versionCode='${{ steps.ver.outputs.n }}'" badging.txt \
+            || { echo "::error::Unexpected app id or versionCode"; exit 1; }
+      - name: Check the map engine draws with the cyberNAV map style
+        run: |
+          python3 - <<'EOF'
+          import zipfile, zlib, sys
+          z = zipfile.ZipFile("cyberNAV.apk")
+          d = z.read("assets/OsmAndCore_ResourcesBundle/map/styles/default.render.xml.qz")
+          ok = b'cybernav="phosphor-hud"' in zlib.decompress(d[4:])
+          print("engine map style is cyberNAV:", ok)
+          sys.exit(0 if ok else "::error::The map engine still has the stock OsmAnd map style")
+          EOF
+      - uses: actions/upload-artifact@v4
+        with: { name: cyberNAV-apk, path: cyberNAV.apk, retention-days: 30 }
+      - name: Publish release
+        env: { GH_TOKEN: "${{ github.token }}" }
+        working-directory: skin
+        run: |
+          v=v${{ steps.ver.outputs.name }}
+          cp ../cyberNAV.apk "../cyberNAV-$v.apk"
+          gh release create "$v" "../cyberNAV-$v.apk" --latest --target "$GITHUB_SHA" \
+            --title "cyberNAV $v" --notes-file ../notes.md
