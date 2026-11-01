@@ -70,6 +70,18 @@ jobs:
           apk=$(find android/OsmAnd/build/outputs/apk -name '*.apk' | head -1)
           echo "Built $apk"; ls -la "$apk"
           cp "$apk" cyberNAV.apk
+      - name: Check it installs over the previous version (same signing key, higher version)
+        run: |
+          signer=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/apksigner
+          "$signer" verify --print-certs cyberNAV.apk | tee certs.txt
+          # OsmAnd's fixed debug key (android/keystores/debug.keystore). Every cyberNAV release must use it,
+          # or Android refuses to update and asks to uninstall first.
+          grep -qi "SHA-256 digest: 3465867d3403deb7a32472c8cee2acb8f8a876d5ffaccfcde51f2829bb6d03c7" certs.txt \
+            || { echo "::error::APK is signed with a different key; it would not install over cyberNAV"; exit 1; }
+          aapt=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/aapt
+          "$aapt" dump badging cyberNAV.apk | head -1 | tee badging.txt
+          grep -q "name='net.faradaymicrosystems.cybernav' versionCode='${{ steps.ver.outputs.n }}'" badging.txt \
+            || { echo "::error::Unexpected app id or versionCode"; exit 1; }
       - uses: actions/upload-artifact@v4
         with: { name: cyberNAV-apk, path: cyberNAV.apk, retention-days: 30 }
       - name: Publish release
