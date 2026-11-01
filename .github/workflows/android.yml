@@ -17,7 +17,12 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
       - name: Navigation core tests
-        run: node --test simulator/test/*.test.mjs
+        run: node --test simulator/test/core.test.mjs
+      - name: Browser end-to-end tests
+        run: |
+          npm i --no-save --prefix simulator playwright@1.49.1
+          npx --prefix simulator playwright install --with-deps chromium
+          NODE_PATH=simulator/node_modules node --test simulator/test/e2e.test.mjs
 
   apk:
     runs-on: ubuntu-latest

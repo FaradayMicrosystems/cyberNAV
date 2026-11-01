@@ -24,7 +24,7 @@ class NavScreen(ctx: CarContext, private val hub: CarHub) : Screen(ctx) {
         val b = NavigationTemplate.Builder()
             .setActionStrip(Templates.actionStrip(carContext, m.optJSONArray("actionStrip"), hub))
             .setMapActionStrip(Templates.mapActionStrip(carContext, hub))
-            .setBackgroundColor(Templates.PHOSPHOR)
+            .setBackgroundColor(Templates.CARD)
         val r = m.optJSONObject("routingInfo")
         val msg = m.optJSONObject("message")
         try {
@@ -97,10 +97,10 @@ class PreviewScreen(ctx: CarContext, private val hub: CarHub) : Screen(ctx) {
         list.setOnSelectedListener { index -> hub.action("route:$index") }
         list.setSelectedIndex(m.optInt("selected", 0).coerceIn(0, maxOf(0, n - 1)))
         val title = m.optString("title", "Routes")
-        val start = Action.Builder().setTitle("Start").setBackgroundColor(Templates.PHOSPHOR)
-            .setOnClickListener { hub.action("start") }.build()
+        val start = Action.Builder().setTitle("Start").setOnClickListener { hub.action("start") }.build()
+        // One titled action per strip (host rule); Cancel is an icon.
         val strip = ActionStrip.Builder().addAction(start)
-            .addAction(Action.Builder().setTitle("Cancel").setOnClickListener { hub.action("cancel") }.build()).build()
+            .addAction(Templates.iconAction(carContext, com.faradaymicrosystems.cybernav.R.drawable.ic_close) { hub.action("cancel") }).build()
 
         if (carContext.carAppApiLevel >= 7 && n > 0) {
             val content = ListTemplate.Builder()
@@ -117,7 +117,7 @@ class PreviewScreen(ctx: CarContext, private val hub: CarHub) : Screen(ctx) {
         val b = RoutePreviewNavigationTemplate.Builder()
             .setTitle(title)
             .setHeaderAction(Action.BACK)
-            .setNavigateAction(start)
+            .setNavigateAction(Action.Builder().setTitle("Start").setBackgroundColor(Templates.PHOSPHOR).setOnClickListener { hub.action("start") }.build())
             .setMapActionStrip(Templates.mapActionStrip(carContext, hub))
         if (n > 0) b.setItemList(list.build()) else b.setLoading(true)
         return b.build()

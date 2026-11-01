@@ -24,7 +24,9 @@ import java.util.TimeZone
 
 /** Builders that turn the web app's template model into Car App Library objects. */
 object Templates {
-    val PHOSPHOR: CarColor = CarColor.createCustom(Color.parseColor("#7FB24F"), Color.parseColor("#B8FF7A"))
+    val PHOSPHOR: CarColor = CarColor.createCustom(Color.parseColor("#4E7A2C"), Color.parseColor("#B8FF7A"))
+    /** Dark phosphor-tinted background for the host's routing card (host text stays readable). */
+    val CARD: CarColor = CarColor.createCustom(Color.parseColor("#12301A"), Color.parseColor("#12301A"))
 
     fun distance(meters: Double): Distance =
         if (meters >= 1000) Distance.create(meters / 1000.0, Distance.UNIT_KILOMETERS_P1)
@@ -60,23 +62,35 @@ object Templates {
         return Step.Builder(r.optString("cue", "")).setManeuver(b.build()).setRoad(r.optString("road", "")).build()
     }
 
-    fun action(ctx: CarContext, a: JSONObject, primary: Boolean, onClick: () -> Unit): Action {
-        val b = Action.Builder().setTitle(a.optString("title")).setOnClickListener(onClick)
-        if (primary) b.setBackgroundColor(PHOSPHOR)
-        return b.build()
-    }
+    private val ICONS = mapOf(
+        "search" to R.drawable.ic_search, "demo" to R.drawable.ic_play, "mute" to R.drawable.ic_volume,
+        "unmute" to R.drawable.ic_volume_off, "cancel" to R.drawable.ic_close, "end" to R.drawable.ic_close, "done" to R.drawable.ic_close,
+    )
 
+    /**
+     * Action strip from the model. Android Auto allows only one custom-titled action in a
+     * navigation action strip, so the first action keeps its title and the rest are icons.
+     */
     fun actionStrip(ctx: CarContext, arr: JSONArray?, hub: CarHub): ActionStrip {
         val s = ActionStrip.Builder()
-        val n = arr?.length() ?: 0
-        for (i in 0 until minOf(n, 4)) {
+        val n = minOf(arr?.length() ?: 0, 4)
+        for (i in 0 until n) {
             val a = arr!!.getJSONObject(i)
             val id = a.optString("id")
-            s.addAction(action(ctx, a, i == 0 && id in setOf("search", "start")) { hub.action(id) })
+            val b = Action.Builder().setOnClickListener { hub.action(id) }
+            if (i == 0) b.setTitle(a.optString("title"))
+            else {
+                val key = if (id == "mute" && a.optString("title") == "Unmute") "unmute" else id
+                b.setIcon(CarIcon.Builder(IconCompat.createWithResource(ctx, ICONS[key] ?: R.drawable.ic_close)).build())
+            }
+            s.addAction(b.build())
         }
         if (n == 0) s.addAction(Action.Builder().setTitle("Search").setOnClickListener { hub.action("search") }.build())
         return s.build()
     }
+
+    fun iconAction(ctx: CarContext, res: Int, onClick: () -> Unit): Action =
+        Action.Builder().setIcon(CarIcon.Builder(IconCompat.createWithResource(ctx, res)).build()).setOnClickListener(onClick).build()
 
     /** Map buttons: pan mode plus zoom and recenter, drawn by the host as round icon buttons. */
     fun mapActionStrip(ctx: CarContext, hub: CarHub): ActionStrip = ActionStrip.Builder()
@@ -86,8 +100,6 @@ object Templates {
         .addAction(iconAction(ctx, R.drawable.ic_recenter) { hub.mapAction("recenter") })
         .build()
 
-    private fun iconAction(ctx: CarContext, res: Int, onClick: () -> Unit): Action =
-        Action.Builder().setIcon(CarIcon.Builder(IconCompat.createWithResource(ctx, res)).build()).setOnClickListener(onClick).build()
 
     private val iconCache = HashMap<String, CarIcon>()
 
