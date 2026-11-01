@@ -36,6 +36,11 @@ edit "$S" '"enable_3d_map_objects", false\)' '"enable_3d_map_objects", true)'
 edit "$S" 'BUILDINGS_3D_DEFAULT_COLOR = 0x666666;' 'BUILDINGS_3D_DEFAULT_COLOR = 0x2F6B1F;'
 edit "$S" 'BUILDINGS_3D_ALPHA_DEF_VALUE = 0\.5f;' 'BUILDINGS_3D_ALPHA_DEF_VALUE = 1.0f;'
 
+echo "3a. Map faces the direction of travel (not compass), tilted in 3D perspective"
+edit "$S" '"rotate_map", ROTATE_MAP_MANUAL\)' '"rotate_map", ROTATE_MAP_BEARING)'
+edit "$S" '"last_known_map_elevation", 90\)' '"last_known_map_elevation", 40)'
+edit "$S" '"last_known_aa_map_elevation", 90\)' '"last_known_aa_map_elevation", 40)'
+
 echo "3b. Night palette everywhere (phone map, app and Android Auto): the HUD is night-only"
 D="$APP/src/net/osmand/plus/helpers/DayNightHelper.java"
 edit "$D" '(@NonNull ThemeUsageContext usageContext, boolean checkCarSettings\) \{)' '\1\n\t\tif (true) return true; // cyberNAV: Phosphor HUD is night-only'

@@ -7,6 +7,7 @@ This folder turns **[OsmAnd](https://github.com/osmandapp/OsmAnd)** (GPLv3, © O
 | Area | Change | File |
 | --- | --- | --- |
 | Map | Every colour in OsmAnd's default map style is moved onto the Phosphor HUD green ramp: dark ground, dim areas, bright roads, labels and route. Red warnings stay red. | `recolor.py render` |
+| Map view | Turns with the direction of travel (not compass) and starts tilted 50° from flat for a 3D perspective, on the phone and in Android Auto. | `apply.sh` step 3a |
 | Day/night | Always night palette, on the phone and in Android Auto (the HUD is night-only). | `apply.sh` step 3b |
 | 3D buildings | On by default. Wireframe: phosphor edge lines on near-black, opaque faces (hidden lines stay hidden). Short buildings drawn taller (h + 7·e^(−h/12) m). Done by patching the building shaders inside OsmAnd's prebuilt map engine. | `core/patch_core.py`, `apply.sh` steps 3 and 8 |
 | App UI | Dark theme by default; dark-theme greys and accent colours moved to the HUD palette. | `recolor.py colors` |
