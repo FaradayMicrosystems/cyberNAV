@@ -65,4 +65,8 @@ else
   echo "  skipped (no patched engine given): buildings stay solid"
 fi
 
+echo "9. Routing: a new stop is appended as the new final destination, never inserted mid-route"
+T="$APP/src/net/osmand/plus/helpers/TargetPointsHelper.java"
+edit "$T" '(\n(\t+))(if \(intermediate < 0 \|\| intermediate > intermediatePoints\.size\(\)\) \{)' '\1// cyberNAV: new stops always go at the end of the run (old destination becomes the last stop)\1if (intermediate >= 0 && intermediate <= intermediatePoints.size() && getPointToNavigate() != null) intermediate = intermediatePoints.size() + 1;\1\3'
+
 echo "Skin applied."
