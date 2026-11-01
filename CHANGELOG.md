@@ -1,0 +1,24 @@
+# cyberNAV changelog
+
+Every change gets its own version: v0.0.N, one higher per release. GitHub Actions picks the number and publishes each release with the list of commits it contains; this file keeps the human-readable history. Downloads: https://github.com/FaradayMicrosystems/cyberNAV/releases
+
+## v0.0.7 (2026-11-01)
+
+- Map turns with the direction of travel instead of the compass, on the phone and in Android Auto.
+- Map opens tilted into a 3D perspective (about 50° from flat).
+- Versioning: every change gets its own version (v0.0.N) and this changelog; v0.6 renamed to v0.0.6.
+
+## v0.0.6 (2026-11-01)
+
+First release of cyberNAV built on [OsmAnd](https://github.com/osmandapp/OsmAnd) (see README for credits and licence).
+
+- Phosphor HUD look: recoloured map style, night palette everywhere, dark HUD app theme, wireframe navigation icon, name "cyberNAV".
+- Wireframe 3D buildings (phosphor edges, solid dark faces) and taller short buildings.
+- In-app updates from GitHub releases.
+- First run: download the whole country or just your region.
+- New stops are added at the end of the route.
+- Releases are signed with one fixed key and always have a higher version, so they install over the previous one.
+
+## Earlier
+
+- Custom-engine prototype (`simulator/`, `android/`), release `prototype-latest`. Kept as a fallback.

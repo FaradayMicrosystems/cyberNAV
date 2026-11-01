@@ -40,7 +40,7 @@ import java.util.regex.Pattern;
 
 /**
  * cyberNAV in-app updates. cyberNAV is sideloaded, so it updates itself from the GitHub release
- * that CI publishes (the latest "cyberNAV v0.N" release): on launch it compares the release's build number
+ * that CI publishes (the latest "cyberNAV v0.0.N" release): on launch it compares the release's build number
  * with its own versionCode, shows a Phosphor HUD prompt, downloads the APK with DownloadManager
  * and hands it to Android's package installer. Part of the cyberNAV skin (GPLv3), not OsmAnd.
  */
@@ -86,6 +86,7 @@ public final class CyberUpdater {
 	static final class Release {
 		long build;
 		String url;
+		String name;
 		long size;
 	}
 
@@ -107,6 +108,7 @@ public final class CyberUpdater {
 				if (a.optString("name").endsWith(".apk")) {
 					Release r = new Release();
 					r.build = Long.parseLong(m.group(1));
+					r.name = json.optString("tag_name", "v0.0." + r.build);
 					r.url = a.getString("browser_download_url");
 					r.size = a.optLong("size", 0);
 					return r;
@@ -168,7 +170,7 @@ public final class CyberUpdater {
 		bg.setStroke((int) Math.max(1, d), PHOSPHOR);
 		box.setBackground(bg);
 
-		box.addView(text(activity, "UPDATE AVAILABLE // V0." + r.build, 15, PHOSPHOR, true));
+		box.addView(text(activity, "UPDATE AVAILABLE // " + r.name.toUpperCase(java.util.Locale.ROOT), 15, PHOSPHOR, true));
 		String mb = r.size > 0 ? String.format(java.util.Locale.US, "%.0f MB", r.size / 1048576.0) : "";
 		TextView body = text(activity, "A NEW cyberNAV BUILD IS READY. " + mb + " DOWNLOAD. "
 				+ "INSTALLING KEEPS YOUR MAPS AND SETTINGS.", 12, DIM, false);
@@ -233,11 +235,11 @@ public final class CyberUpdater {
 	private static void download(Context ctx, Release r) {
 		DownloadManager dm = (DownloadManager) ctx.getSystemService(Context.DOWNLOAD_SERVICE);
 		DownloadManager.Request req = new DownloadManager.Request(Uri.parse(r.url))
-				.setTitle("cyberNAV v0." + r.build)
+				.setTitle("cyberNAV " + r.name)
 				.setDescription("Downloading update")
 				.setMimeType("application/vnd.android.package-archive")
 				.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-				.setDestinationInExternalFilesDir(ctx, Environment.DIRECTORY_DOWNLOADS, "cyberNAV-v0." + r.build + ".apk");
+				.setDestinationInExternalFilesDir(ctx, Environment.DIRECTORY_DOWNLOADS, "cyberNAV-" + r.name + ".apk");
 		long id = dm.enqueue(req);
 		ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putLong("pending", id).apply();
 		Toast.makeText(ctx, "cyberNAV // DOWNLOADING UPDATE", Toast.LENGTH_SHORT).show();
