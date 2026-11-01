@@ -41,7 +41,7 @@ PATCHES = [
      b"float e=1.0;"
      b"if(abs(n.y)<0.01){vec2 q=v2f_sizes.xy;vec2 w=max(fwidth(q)*1.5,vec2(1e-5));"
      b"vec2 m=min(q,1.0-q)/w;e=clamp(min(m.x,m.y)-0.5,0.0,1.0);}"
-     b"vec3 color=mix(vec3(0.72,1.0,0.48),face,e);"
+     b"vec3 color=mix(vec3(1.0,0.45,0.0),face,e);"  # bright orange edges
      b"float alpha=param_fs_alpha*min(param_fs_fadeHeight/v2f_height,1.0);"
      b"FRAGMENT_COLOR_OUTPUT=vec4(color,alpha);}"),
     ("dark faces (fallback building shader)",

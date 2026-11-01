@@ -2,6 +2,12 @@
 
 Every change gets its own version: v0.0.N, one higher per release. GitHub Actions picks the number and publishes each release with the list of commits it contains; this file keeps the human-readable history. Downloads: https://github.com/FaradayMicrosystems/cyberNAV/releases
 
+## v0.0.8 (2026-11-01)
+
+- Map always opens in 3D perspective, also after upgrading from an older version (a saved flat view is no longer restored).
+- Wireframe building edges are bright orange (were phosphor green, which looked yellow).
+- 3D buildings default to the far (maximum) view distance and the detailed level (building parts), also applied once on upgrade.
+
 ## v0.0.7 (2026-11-01)
 
 - Map turns with the direction of travel instead of the compass, on the phone and in Android Auto.

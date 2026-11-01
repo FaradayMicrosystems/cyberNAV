@@ -40,6 +40,14 @@ echo "3a. Map faces the direction of travel (not compass), tilted in 3D perspect
 edit "$S" '"rotate_map", ROTATE_MAP_MANUAL\)' '"rotate_map", ROTATE_MAP_BEARING)'
 edit "$S" '"last_known_map_elevation", 90\)' '"last_known_map_elevation", 40)'
 edit "$S" '"last_known_aa_map_elevation", 90\)' '"last_known_aa_map_elevation", 40)'
+# A saved flat view (90) is never restored: the map always opens in 3D perspective
+edit "$S" 'return Float\.isNaN\(elevation\) \? preference\.getProfileDefaultValue\(appMode\) : elevation;' 'return Float.isNaN(elevation) || elevation >= 90 ? preference.getProfileDefaultValue(appMode) : elevation; // cyberNAV: always open in 3D'
+# 3D buildings drawn to the far (maximum) view distance
+edit "$S" '"3d_buildings_view_distance", 1\)' '"3d_buildings_view_distance", 2)'
+# 3D buildings at the detailed level (building parts), not plain blocks
+edit "$S" '(private CommonPreference<Boolean> registerCustomRenderBooleanProperty\(@NonNull String attrName, boolean defaultValue\) \{)' '\1\n\t\tif ("show3DbuildingParts".equals(attrName)) defaultValue = true; // cyberNAV: detailed 3D buildings'
+# Upgrades: move settings saved by older versions to the new defaults, once
+edit "$APP/src/net/osmand/plus/activities/MapActivity.java" '(\n\t\tsuper\.onCreate\(savedInstanceState\);)' '\1\n\t\tnet.osmand.plus.cybernav.CyberMigrate.run(app);'
 
 echo "3b. Night palette everywhere (phone map, app and Android Auto): the HUD is night-only"
 D="$APP/src/net/osmand/plus/helpers/DayNightHelper.java"

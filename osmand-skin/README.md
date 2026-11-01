@@ -7,9 +7,9 @@ This folder turns **[OsmAnd](https://github.com/osmandapp/OsmAnd)** (GPLv3, © O
 | Area | Change | File |
 | --- | --- | --- |
 | Map | Every colour in OsmAnd's default map style is moved onto the Phosphor HUD green ramp: dark ground, dim areas, bright roads, labels and route. Red warnings stay red. | `recolor.py render` |
-| Map view | Turns with the direction of travel (not compass) and starts tilted 50° from flat for a 3D perspective, on the phone and in Android Auto. | `apply.sh` step 3a |
+| Map view | Turns with the direction of travel (not compass) and always opens tilted 50° from flat for a 3D perspective (a saved flat view is not restored), on the phone and in Android Auto. | `apply.sh` step 3a |
 | Day/night | Always night palette, on the phone and in Android Auto (the HUD is night-only). | `apply.sh` step 3b |
-| 3D buildings | On by default. Wireframe: phosphor edge lines on near-black, opaque faces (hidden lines stay hidden). Short buildings drawn taller (h + 7·e^(−h/12) m). Done by patching the building shaders inside OsmAnd's prebuilt map engine. | `core/patch_core.py`, `apply.sh` steps 3 and 8 |
+| 3D buildings | On by default. Far view distance and detailed level (building parts). Wireframe: bright orange edge lines on near-black, opaque faces (hidden lines stay hidden). Short buildings drawn taller (h + 7·e^(−h/12) m). Done by patching the building shaders inside OsmAnd's prebuilt map engine. | `core/patch_core.py`, `apply.sh` steps 3 and 8 |
 | App UI | Dark theme by default; dark-theme greys and accent colours moved to the HUD palette. | `recolor.py colors` |
 | Updates | On launch (at most hourly) checks the latest GitHub release; if its `build=N` (the N in v0.0.N) is newer than the installed versionCode, shows a HUD prompt (Install / Later / Skip), downloads the APK and opens Android's installer. Android asks once to allow installs from cyberNAV. | `src/.../CyberUpdater.java`, `apply.sh` step 6 |
 | First run | When OsmAnd's start wizard finds your region's map and your country has several maps, a HUD prompt offers **Whole country** (all maps, total size) or **Just this region**. | `src/.../CyberCountry.java`, `apply.sh` step 7 |
