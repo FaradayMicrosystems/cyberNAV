@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 108dp canvas, safe zone is the central 66dp circle. Strokes only: wireframe. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <!-- faint grid -->
+    <path android:strokeColor="#2A3C1D" android:strokeWidth="0.6"
+        android:pathData="M30,54H78 M54,30V78 M36,42H72 M36,66H72 M42,36V72 M66,36V72" />
+    <!-- range ring and corner brackets -->
+    <path android:strokeColor="#668E44" android:strokeWidth="1"
+        android:pathData="M54,25a29,29 0 1,0 0.01,0z" />
+    <path android:strokeColor="#B8FF7A" android:strokeWidth="1.6"
+        android:pathData="M27,33V27H33 M75,27H81V33 M81,75V81H75 M33,81H27V75" />
+    <!-- wireframe chevron (direction of travel), with inner edge for a 3D facet -->
+    <path android:strokeColor="#B8FF7A" android:strokeWidth="2.2" android:strokeLineJoin="miter"
+        android:pathData="M54,34L68,72L54,63L40,72Z" />
+    <path android:strokeColor="#9DDA68" android:strokeWidth="1"
+        android:pathData="M54,34V63" />
+</vector>

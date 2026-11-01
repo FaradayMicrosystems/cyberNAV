@@ -1,0 +1,68 @@
+name: Build cyberNAV (OsmAnd)
+
+# Fetches OsmAnd at the commits pinned in osmand-skin/versions.env, applies the Phosphor HUD
+# skin (osmand-skin/apply.sh), builds an arm64 debug APK and publishes it as the
+# "cybernav-osmand-latest" release. OsmAnd: https://github.com/osmandapp/OsmAnd (GPLv3).
+on:
+  push:
+    branches: [main, cybernav-osmand]
+    paths: ["osmand-skin/**", ".github/workflows/osmand.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: osmand-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+        with: { path: skin }
+      - name: Read pinned OsmAnd versions
+        id: v
+        run: cat skin/osmand-skin/versions.env | grep -v '^#' >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with: { repository: osmandapp/OsmAnd, ref: "${{ steps.v.outputs.OSMAND_REF }}", path: android }
+      - uses: actions/checkout@v4
+        with: { repository: osmandapp/OsmAnd-resources, ref: "${{ steps.v.outputs.OSMAND_RESOURCES_REF }}", path: resources }
+      - uses: actions/checkout@v4
+        with: { repository: osmandapp/OsmAnd-core-legacy, ref: "${{ steps.v.outputs.OSMAND_CORE_LEGACY_REF }}", path: core-legacy }
+      - uses: actions/checkout@v4
+        with: { repository: osmandapp/OsmAnd-core, ref: "${{ steps.v.outputs.OSMAND_CORE_REF }}", path: core }
+      - uses: actions/checkout@v4
+        with: { repository: osmandapp/OsmAnd-build, ref: "${{ steps.v.outputs.OSMAND_BUILD_REF }}", path: build }
+      - name: Free disk space
+        run: sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost "$AGENT_TOOLSDIRECTORY" || true
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - name: Apply the cyberNAV skin
+        run: bash skin/osmand-skin/apply.sh android resources
+      - name: Build APK (OpenGL renderer with 3D buildings, arm64)
+        working-directory: android
+        env:
+          APK_NUMBER_VERSION: ${{ github.run_number }}
+          APK_VERSION_SUFFIX: -cybernav.${{ github.run_number }}
+        run: |
+          printf "\norg.gradle.jvmargs=-Xmx6g -Dfile.encoding=UTF-8\n" >> gradle.properties
+          chmod +x gradlew
+          ./gradlew --no-daemon --stacktrace assembleNightlyFreeOpenglArm64Debug
+      - name: Collect APK
+        run: |
+          apk=$(find android/OsmAnd/build/outputs/apk -name '*.apk' | head -1)
+          echo "Built $apk"; ls -la "$apk"
+          cp "$apk" cyberNAV-osmand.apk
+      - uses: actions/upload-artifact@v4
+        with: { name: cyberNAV-osmand-apk, path: cyberNAV-osmand.apk, retention-days: 30 }
+      - name: Publish release
+        env: { GH_TOKEN: "${{ github.token }}" }
+        working-directory: skin
+        run: |
+          gh release delete cybernav-osmand-latest --yes --cleanup-tag || true
+          gh release create cybernav-osmand-latest ../cyberNAV-osmand.apk --prerelease --target "$GITHUB_SHA" \
+            --title "cyberNAV (OsmAnd skin) – latest build" \
+            --notes "Phosphor HUD skin on OsmAnd ${{ steps.v.outputs.OSMAND_REF }} (r5.4). Based on OsmAnd, https://github.com/osmandapp/OsmAnd, GPLv3. Debug build for testing; installs next to OsmAnd."
