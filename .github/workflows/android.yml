@@ -1,16 +1,44 @@
-name: Android APK
+name: Build APK
 on:
   push:
     branches: [main, "prototype/**"]
+  pull_request:
   workflow_dispatch:
 permissions:
   contents: write
+concurrency:
+  group: apk-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Probe environment
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Navigation core tests
+        run: node --test simulator/test/
+
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17 }
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Build debug APK
+        working-directory: android
+        run: ./gradlew --no-daemon assembleDebug
+      - name: Rename APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk cyberNAV-prototype.apk
+      - uses: actions/upload-artifact@v4
+        with: { name: cyberNAV-apk, path: cyberNAV-prototype.apk }
+      - name: Publish "prototype-latest" release (download from your phone)
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          echo "ANDROID_HOME=$ANDROID_HOME"; ls $ANDROID_HOME/platforms || true; ls $ANDROID_HOME/build-tools || true
-          java -version; which gradle || true
+          NOTES="Latest prototype build from ${GITHUB_REF_NAME} @ ${GITHUB_SHA::7} (run ${GITHUB_RUN_NUMBER}). Install on Android, see docs/TESTING.md."
+          gh release delete prototype-latest --yes --cleanup-tag 2>/dev/null || true
+          gh release create prototype-latest cyberNAV-prototype.apk --prerelease --target "$GITHUB_SHA" \
+            --title "cyberNAV prototype (latest build)" --notes "$NOTES"
