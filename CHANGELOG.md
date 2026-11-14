@@ -2,10 +2,16 @@
 
 Every change gets its own version: v0.0.N, one higher per release. GitHub Actions picks the number and publishes each release with the list of commits it contains; this file keeps the human-readable history. Downloads: https://github.com/FaradayMicrosystems/cyberNAV/releases
 
-## v0.0.12 (2026-11-14)
+## v0.0.13 (2026-11-14)
 
 - Smooth motion while driving: the map now glides continuously with the vehicle instead of moving in chunks. Each glide between GPS fixes lasts a little longer than the usual gap, so the map no longer stops and lurches when a fix arrives late.
 - Android Auto draws the map at 60 frames a second (was 20), so the car screen moves as smoothly as the phone.
+
+## v0.0.12 (2026-11-14)
+
+- Natural navigation voice: turn-by-turn prompts use the phone's own text-to-speech voice at normal pitch and normal speed, with the best-quality voice installed for your language (offline voices only, so prompts never drop out in a dead zone).
+- If the phone's speech engine is an old robotic one (eSpeak or Pico) and Google Speech Services is installed, cyberNAV speaks with Google's voice instead.
+- On upgrade, a recorded voice pack is switched once to the phone's voice. Any voice can still be picked under Settings > Navigation > Voice prompts > Language, and Android's Text-to-speech settings still choose the engine and voice.
 
 ## v0.0.11 (2026-11-01)
 
