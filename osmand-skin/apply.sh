@@ -102,4 +102,9 @@ echo "9. Routing: a new stop is appended as the new final destination, never ins
 T="$APP/src/net/osmand/plus/helpers/TargetPointsHelper.java"
 edit "$T" '(\n(\t+))(if \(intermediate < 0 \|\| intermediate > intermediatePoints\.size\(\)\) \{)' '\1// cyberNAV: new stops always go at the end of the run (old destination becomes the last stop)\1if (intermediate >= 0 && intermediate <= intermediatePoints.size() && getPointToNavigate() != null) intermediate = intermediatePoints.size() + 1;\1\3'
 
+echo "10. Natural navigation voice: phone's text-to-speech at normal pitch and speed, best installed voice"
+J="$APP/src/net/osmand/plus/voice/JsTtsCommandPlayer.java"
+edit "$J" 'textToSpeech\[0\] = new TextToSpeech\(app, status -> \{' 'textToSpeech[0] = net.osmand.plus.cybernav.CyberVoice.create(app, status -> {'
+edit "$J" '(\n(\t+)if \(speechRate != 1\) \{\n\t+mTts\.setSpeechRate\(speechRate\);\n\t+\})' '\1\n\2net.osmand.plus.cybernav.CyberVoice.tune(mTts, locale, speechRate);'
+
 echo "Skin applied."
