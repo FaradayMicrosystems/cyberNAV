@@ -27,6 +27,7 @@ public final class CyberMigrate {
 	public static void run(OsmandApplication app) {
 		SharedPreferences p = app.getSharedPreferences("cybernav_migrate", Context.MODE_PRIVATE);
 		OsmandSettings settings = app.getSettings();
+		CyberVoice.migrate(app); // v0.0.12: recorded voice packs -> the phone's natural voice, once
 		if (!p.getBoolean("v11_gentler_tilt", false)) { // v0.0.11: 40 -> 55, a gentler 3D angle
 			for (ApplicationMode mode : ApplicationMode.allPossibleValues()) {
 				settings.setLastKnownMapElevation(mode, TILT);
