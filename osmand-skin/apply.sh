@@ -43,6 +43,15 @@ edit "$S" '"last_known_map_elevation", 90\)' '"last_known_map_elevation", 55)'
 edit "$S" '"last_known_aa_map_elevation", 90\)' '"last_known_aa_map_elevation", 55)'
 # A saved flat view (90) is never restored: the map always opens in 3D perspective
 edit "$S" 'return Float\.isNaN\(elevation\) \? preference\.getProfileDefaultValue\(appMode\) : elevation;' 'return Float.isNaN(elevation) || elevation >= 90 ? preference.getProfileDefaultValue(appMode) : elevation; // cyberNAV: always open in 3D'
+echo "3b. Smooth motion while driving: the map glides between GPS fixes, and Android Auto draws at 60 fps"
+# Android Auto's map was capped at 20 frames a second, so it moved in visible steps in the car
+edit "$APP/src/net/osmand/plus/auto/SurfaceRenderer.java" 'private static final int MAX_FRAME_RATE = 20;' 'private static final int MAX_FRAME_RATE = 60; // cyberNAV: smooth motion in the car'
+# Each fix started a glide that lasted exactly as long as the gap before it. Fixes arrive
+# unevenly (0.5 to 1 s), so a glide often ended early and the map paused until the next fix,
+# then lurched. The glide now spans the usual gap plus 20%, so the map never stops between fixes.
+DRAG="$APP/src/net/osmand/plus/views/AnimateDraggingMapThread.java"
+edit "$DRAG" 'float animationDuration = Math\.max\(movingTime, NAV_ANIMATION_TIME / 4\);' 'float animationDuration = Math.max(cyberGlideDuration(movingTime), NAV_ANIMATION_TIME / 4);'
+edit "$DRAG" '(\n\tprivate void animatingMapAnimator\(\) \{)' '\n\t// cyberNAV: glide time between GPS fixes, from a running average of the gap between them\n\tprivate float cyberAvgFixGapMs;\n\n\tprivate float cyberGlideDuration(long movingTime) {\n\t\tif (movingTime <= 0 || movingTime > 3000) {\n\t\t\treturn movingTime;\n\t\t}\n\t\tcyberAvgFixGapMs = cyberAvgFixGapMs <= 0 ? movingTime : cyberAvgFixGapMs * 0.8f + movingTime * 0.2f;\n\t\treturn Math.max(movingTime, cyberAvgFixGapMs) * 1.2f;\n\t}\n\1'
 # 3D buildings drawn to the far (maximum) view distance
 edit "$S" '"3d_buildings_view_distance", 1\)' '"3d_buildings_view_distance", 2)'
 # 3D buildings at the detailed level (building parts), not plain blocks

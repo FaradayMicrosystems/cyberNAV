@@ -67,12 +67,15 @@ jobs:
           n=$(( ${last:-5} + 1 ))
           echo "n=$n" >> "$GITHUB_OUTPUT"
           echo "name=0.0.$n" >> "$GITHUB_OUTPUT"
-          # Release notes: every commit since the previous release.
+          # Release notes: this version's CHANGELOG.md entry, else every commit since the previous release.
           prev=$(gh api "repos/$repo/git/ref/tags/v0.0.$last" --jq .object.sha 2>/dev/null || true)
+          entry=$(awk -v h="## v0.0.$n " 'index($0, h) == 1 {on=1; next} /^## / {on=0} on' CHANGELOG.md | sed '/./,$!d')
           {
             echo "## cyberNAV v0.0.$n"
             echo
-            if [ -n "$prev" ] && git cat-file -e "$prev" 2>/dev/null; then
+            if [ -n "$entry" ]; then
+              echo "$entry"
+            elif [ -n "$prev" ] && git cat-file -e "$prev" 2>/dev/null; then
               git log --no-merges --pretty='- %s' "$prev..HEAD"
             else
               git log --no-merges --pretty='- %s' -1

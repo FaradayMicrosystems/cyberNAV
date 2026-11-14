@@ -2,6 +2,11 @@
 
 Every change gets its own version: v0.0.N, one higher per release. GitHub Actions picks the number and publishes each release with the list of commits it contains; this file keeps the human-readable history. Downloads: https://github.com/FaradayMicrosystems/cyberNAV/releases
 
+## v0.0.12 (2026-11-14)
+
+- Smooth motion while driving: the map now glides continuously with the vehicle instead of moving in chunks. Each glide between GPS fixes lasts a little longer than the usual gap, so the map no longer stops and lurches when a fix arrives late.
+- Android Auto draws the map at 60 frames a second (was 20), so the car screen moves as smoothly as the phone.
+
 ## v0.0.11 (2026-11-01)
 
 - Gentler 3D angle: the map tilts 35° from straight down instead of 50°, on the phone and in Android Auto (also applied once on upgrade).
