@@ -9,7 +9,7 @@ same length or shorter (padded with spaces), so nothing else in the library move
 
 1. Vertex shader: short buildings are drawn taller. A vertex at height h > 0 goes to
    h + 7 * exp(-h / 12): a 3 m shed becomes ~8.5 m, a 10 m house ~13 m, a 40 m tower ~40.3 m.
-2. Building fragment shader: walls are near-black and opaque with phosphor-green edge lines
+2. Building fragment shader: walls are near-black and opaque with edge lines in BUILDING_EDGE
    (wall corners, ground line and roofline), 1.5 px wide at any zoom. Faces still hide what is
    behind them, so it reads as hidden-line wireframe.
 3. Fallback building shader (used while the engine starts up): the same colours, much darker.
@@ -20,6 +20,9 @@ Each snippet must be found exactly once, or the script stops: a newer OsmAnd eng
 changed these shaders fails the build instead of shipping unpatched or broken buildings.
 """
 import re, sys, zipfile
+
+# Wireframe edge colour (linear RGB): phosphor #B8FF7A, the same green as the roads and HUD (Unit 01)
+BUILDING_EDGE = b"0.72,1.0,0.48"
 
 PATCHES = [
     ("taller short buildings (vertex shader)",
@@ -41,7 +44,7 @@ PATCHES = [
      b"float e=1.0;"
      b"if(abs(n.y)<0.01){vec2 q=v2f_sizes.xy;vec2 w=max(fwidth(q)*1.5,vec2(1e-5));"
      b"vec2 m=min(q,1.0-q)/w;e=clamp(min(m.x,m.y)-0.5,0.0,1.0);}"
-     b"vec3 color=mix(vec3(1.0,0.45,0.0),face,e);"  # bright orange edges
+     b"vec3 color=mix(vec3(" + BUILDING_EDGE + b"),face,e);"
      b"float alpha=param_fs_alpha*min(param_fs_fadeHeight/v2f_height,1.0);"
      b"FRAGMENT_COLOR_OUTPUT=vec4(color,alpha);}"),
     ("dark faces (fallback building shader)",

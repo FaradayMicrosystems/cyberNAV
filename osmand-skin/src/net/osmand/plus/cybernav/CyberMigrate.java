@@ -22,7 +22,7 @@ import net.osmand.plus.settings.enums.DayNightMode;
  */
 public final class CyberMigrate {
 	private static final int FAR_BUILDINGS = 2; // OsmAnd's 3D buildings view distance: 1 = near, 2 = far (max)
-	private static final float TILT = 15f;      // elevation angle; 90 = straight down (flat map), 10 = OsmAnd's lowest
+	private static final float TILT = 45f;      // elevation angle; 90 = straight down (flat map), 10 = OsmAnd's lowest
 
 	private CyberMigrate() {
 	}
@@ -31,6 +31,12 @@ public final class CyberMigrate {
 		SharedPreferences p = app.getSharedPreferences("cybernav_migrate", Context.MODE_PRIVATE);
 		OsmandSettings settings = app.getSettings();
 		CyberVoice.migrate(app); // v0.0.12: recorded voice packs -> the phone's natural voice, once
+		if (!p.getBoolean("v15_unit01_camera", false)) { // v0.0.15: chase cam 45 degrees down, like the Unit 01 concept
+			for (ApplicationMode mode : ApplicationMode.allPossibleValues()) {
+				settings.setLastKnownMapElevation(mode, TILT);
+			}
+			p.edit().putBoolean("v15_unit01_camera", true).apply();
+		}
 		if (!p.getBoolean("v14_black_chase_cam", false)) { // v0.0.14: black night map, low chase-cam view
 			for (ApplicationMode mode : ApplicationMode.allPossibleValues()) {
 				settings.setLastKnownMapElevation(mode, TILT);
