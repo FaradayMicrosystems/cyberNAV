@@ -7,6 +7,9 @@ on:
   push:
     branches: [main, cybernav-osmand]
     paths: ["osmand-skin/**", ".github/workflows/osmand.yml", "CHANGELOG.md"]
+  pull_request: # build check only: a pull request never publishes a release
+    branches: [cybernav-osmand]
+    paths: ["osmand-skin/**", ".github/workflows/osmand.yml", "CHANGELOG.md"]
   workflow_dispatch:
 
 permissions:
@@ -123,6 +126,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with: { name: cyberNAV-apk, path: cyberNAV.apk, retention-days: 30 }
       - name: Publish release
+        if: github.event_name != 'pull_request'
         env: { GH_TOKEN: "${{ github.token }}" }
         working-directory: skin
         run: |

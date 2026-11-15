@@ -12,6 +12,9 @@ import net.osmand.plus.quickaction.actions.DayNightModeAction;
 import net.osmand.plus.views.mapwidgets.configure.buttons.QuickActionButtonState;
 import net.osmand.plus.settings.backend.ApplicationMode;
 import net.osmand.plus.settings.backend.OsmandSettings;
+import net.osmand.plus.settings.enums.AndroidAutoMapMode;
+import net.osmand.plus.settings.enums.AutoZoomMap;
+import net.osmand.plus.settings.enums.DayNightMode;
 
 /**
  * One-time fixes for settings saved by an older cyberNAV, so new defaults also reach upgrades.
@@ -19,7 +22,7 @@ import net.osmand.plus.settings.backend.OsmandSettings;
  */
 public final class CyberMigrate {
 	private static final int FAR_BUILDINGS = 2; // OsmAnd's 3D buildings view distance: 1 = near, 2 = far (max)
-	private static final float TILT = 55f;      // elevation angle; 90 = straight down (flat map)
+	private static final float TILT = 15f;      // elevation angle; 90 = straight down (flat map), 10 = OsmAnd's lowest
 
 	private CyberMigrate() {
 	}
@@ -28,6 +31,19 @@ public final class CyberMigrate {
 		SharedPreferences p = app.getSharedPreferences("cybernav_migrate", Context.MODE_PRIVATE);
 		OsmandSettings settings = app.getSettings();
 		CyberVoice.migrate(app); // v0.0.12: recorded voice packs -> the phone's natural voice, once
+		if (!p.getBoolean("v14_black_chase_cam", false)) { // v0.0.14: black night map, low chase-cam view
+			for (ApplicationMode mode : ApplicationMode.allPossibleValues()) {
+				settings.setLastKnownMapElevation(mode, TILT);
+				if (settings.DAYNIGHT_MODE.getModeValue(mode) == DayNightMode.AUTO) {
+					settings.DAYNIGHT_MODE.setModeValue(mode, DayNightMode.NIGHT);
+				}
+				if (settings.AA_MAP_NIGHT_MODE.getModeValue(mode) == AndroidAutoMapMode.AUTOMATIC) {
+					settings.AA_MAP_NIGHT_MODE.setModeValue(mode, AndroidAutoMapMode.NIGHT);
+				}
+			}
+			settings.AUTO_ZOOM_MAP_SCALE.setModeValue(ApplicationMode.CAR, AutoZoomMap.CLOSE);
+			p.edit().putBoolean("v14_black_chase_cam", true).apply();
+		}
 		if (!p.getBoolean("v11_gentler_tilt", false)) { // v0.0.11: 40 -> 55, a gentler 3D angle
 			for (ApplicationMode mode : ApplicationMode.allPossibleValues()) {
 				settings.setLastKnownMapElevation(mode, TILT);

@@ -29,18 +29,25 @@ edit "$APP/build.gradle" 'applicationId "net\.osmand\.dev"' "applicationId \"$AP
 edit "$APP/build.gradle" 'resValue "string", "app_name", "OsmAnd Nightly"' 'resValue "string", "app_name", "cyberNAV"'
 edit "$APP/AndroidManifest-nightlyFree.xml" 'android:authorities="net\.osmand\.dev\.fileprovider"' "android:authorities=\"$APP_ID.fileprovider\""
 
-echo "3. Defaults: map follows sunrise/sunset (night HUD after dark, light mode by day), dark app theme, 3D buildings on"
+echo "3. Defaults: black night map (light mode only by hand), dark app theme, 3D buildings on"
 S="$APP/src/net/osmand/plus/settings/backend/OsmandSettings.java"
-edit "$S" '"daynight_mode", DayNightMode\.DAY,' '"daynight_mode", DayNightMode.AUTO,'
+edit "$S" '"daynight_mode", DayNightMode\.DAY,' '"daynight_mode", DayNightMode.NIGHT,'
+edit "$S" 'DAYNIGHT_MODE\.setModeDefaultValue\(ApplicationMode\.(CAR|BICYCLE|PEDESTRIAN), DayNightMode\.(AUTO|DAY)\);' 'DAYNIGHT_MODE.setModeDefaultValue(ApplicationMode.\1, DayNightMode.NIGHT);'
+edit "$S" '"aa_map_mode", AndroidAutoMapMode\.AUTOMATIC,' '"aa_map_mode", AndroidAutoMapMode.NIGHT,'
+# The 3D engine's own sky and distance fog were hard-coded navy blue at night: make them black too
+edit "$APP/src/net/osmand/plus/views/OsmandMapTileView.java" 'FOG_NIGHTMODE_COLOR = 0xff243060;' 'FOG_NIGHTMODE_COLOR = 0xff000000; // cyberNAV: black'
+edit "$APP/src/net/osmand/plus/views/OsmandMapTileView.java" 'SKY_NIGHTMODE_COLOR = 0xff304080;' 'SKY_NIGHTMODE_COLOR = 0xff000000; // cyberNAV: black'
 edit "$S" '"osmand_theme", isSupportSystemTheme\(\) \? SYSTEM_DEFAULT_THEME : OSMAND_LIGHT_THEME\)' '"osmand_theme", OSMAND_DARK_THEME)'
 edit "$S" '"enable_3d_map_objects", false\)' '"enable_3d_map_objects", true)'
 edit "$S" 'BUILDINGS_3D_DEFAULT_COLOR = 0x666666;' 'BUILDINGS_3D_DEFAULT_COLOR = 0x2F6B1F;'
 edit "$S" 'BUILDINGS_3D_ALPHA_DEF_VALUE = 0\.5f;' 'BUILDINGS_3D_ALPHA_DEF_VALUE = 1.0f;'
 
-echo "3a. Map faces the direction of travel (not compass), tilted in 3D perspective"
+echo "3a. Map faces the direction of travel (not compass): low chase-cam 3D view, zoomed in close while driving"
 edit "$S" '"rotate_map", ROTATE_MAP_MANUAL\)' '"rotate_map", ROTATE_MAP_BEARING)'
-edit "$S" '"last_known_map_elevation", 90\)' '"last_known_map_elevation", 55)'
-edit "$S" '"last_known_aa_map_elevation", 90\)' '"last_known_aa_map_elevation", 55)'
+edit "$S" '"last_known_map_elevation", 90\)' '"last_known_map_elevation", 15)'
+edit "$S" '"last_known_aa_map_elevation", 90\)' '"last_known_aa_map_elevation", 15)'
+# Close auto-zoom in the car (zoom up to 19), so the view is a low drone just behind the vehicle
+edit "$S" 'AUTO_ZOOM_MAP_SCALE\.setModeDefaultValue\(ApplicationMode\.CAR, AutoZoomMap\.FAR\);' 'AUTO_ZOOM_MAP_SCALE.setModeDefaultValue(ApplicationMode.CAR, AutoZoomMap.CLOSE);'
 # A saved flat view (90) is never restored: the map always opens in 3D perspective
 edit "$S" 'return Float\.isNaN\(elevation\) \? preference\.getProfileDefaultValue\(appMode\) : elevation;' 'return Float.isNaN(elevation) || elevation >= 90 ? preference.getProfileDefaultValue(appMode) : elevation; // cyberNAV: always open in 3D'
 echo "3b. Smooth motion while driving: the map glides between GPS fixes, and Android Auto draws at 60 fps"
