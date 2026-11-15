@@ -2,6 +2,13 @@
 
 Every change gets its own version: v0.0.N, one higher per release. GitHub Actions picks the number and publishes each release with the list of commits it contains; this file keeps the human-readable history. Downloads: https://github.com/FaradayMicrosystems/cyberNAV/releases
 
+## v0.0.18 (2026-11-16)
+
+- Fix: the driving screen's buttons now work. Taps lit up but never ran their action, because the screen redraws every half second and each redraw made the tap check fail. Route search, ADD STOP, ADD ENDPOINT, MENU, CENTER, DAY / NIGHT, STOCK UI, STOP and ◇ HUD now all open their screens.
+- MENU opens OsmAnd's main menu, the same one as the stock menu button.
+- New START button when a route is ready but navigation hasn't started.
+- Thicker 3D building lines: the wireframe edges are about twice as wide.
+
 ## v0.0.17 (2026-11-15)
 
 Custom Unit 01 driving screen. It replaces OsmAnd's own buttons and widgets on the map screen.
