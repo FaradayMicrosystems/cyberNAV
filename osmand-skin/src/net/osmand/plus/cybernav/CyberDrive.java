@@ -265,6 +265,13 @@ public final class CyberDrive {
 		private void search(int mode) {
 			pending = mode;
 			pendingAt = System.currentTimeMillis();
+			RoutingHelper rh = app.getRoutingHelper();
+			if (!rh.isFollowingMode() && !rh.isRoutePlanningMode()) {
+				// What OsmAnd's own Navigation button does first. Without route planning mode a picked
+				// destination is only stored: no route is calculated, the route card with Start never
+				// opens and the voice prompts are not set up (the v0.0.17 to v0.0.19 navigation bug).
+				act.getMapActions().enterRoutePlanningModeGivenGpx(null, null, null, true, false);
+			}
 			act.getFragmentsHelper().showQuickSearch(mode == NONE
 					? ShowQuickSearchMode.DESTINATION_SELECTION : ShowQuickSearchMode.INTERMEDIATE_SELECTION, false);
 		}
@@ -300,6 +307,44 @@ public final class CyberDrive {
 					})
 					.setNegativeButton(android.R.string.cancel, null)
 					.show();
+		}
+
+		/** Back to your position, following it again (OsmAnd's my-location button). */
+		private void recenter() {
+			if (android.os.Build.VERSION.SDK_INT >= 23 && act.checkSelfPermission(
+					android.Manifest.permission.ACCESS_FINE_LOCATION) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+				act.requestPermissions(new String[] {android.Manifest.permission.ACCESS_FINE_LOCATION,
+						android.Manifest.permission.ACCESS_COARSE_LOCATION}, 101); // OsmAndLocationProvider.REQUEST_LOCATION_PERMISSION
+				return;
+			}
+			app.getMapViewTrackingUtilities().backToLocationImpl();
+		}
+
+		/** Round re-centre button on the map, bottom left: a ring with a crosshair, filled while following. */
+		private void recenterRing(Canvas c, float l, float b) {
+			float rad = 26 * dp, cx = l + rad + 4 * dp, cy = b - rad - 26 * dp;
+			RectF r = new RectF(cx - rad, cy - rad, cx + rad, cy + rad);
+			boolean linked = app.getMapViewTrackingUtilities().isMapLinkedToLocation();
+			boolean down = pressed != null && pressed.r.equals(r);
+			fill.setStyle(Paint.Style.FILL);
+			fill.setColor(down ? PHOSPHOR : Color.argb(200, 0, 0, 0));
+			c.drawCircle(cx, cy, rad, fill);
+			int ink = down ? Color.BLACK : linked ? DIM : PHOSPHOR;
+			line.setColor(ink);
+			line.setStrokeWidth(2 * dp);
+			c.drawCircle(cx, cy, rad - 1 * dp, line);
+			c.drawCircle(cx, cy, rad * 0.42f, line);
+			for (int i = 0; i < 4; i++) {
+				double a = Math.PI / 2 * i;
+				float dx = (float) Math.cos(a), dy = (float) Math.sin(a);
+				c.drawLine(cx + dx * rad * 0.42f, cy + dy * rad * 0.42f, cx + dx * rad * 0.78f, cy + dy * rad * 0.78f, line);
+			}
+			if (linked) {
+				fill.setColor(ink);
+				c.drawCircle(cx, cy, 3 * dp, fill);
+			}
+			panels.add(r);
+			hits.add(new Hit(r, this::recenter));
 		}
 
 		private void nextTheme() {
@@ -535,7 +580,7 @@ public final class CyberDrive {
 		private List<Object[]> buttons(State s) {
 			List<Object[]> b = new ArrayList<>();
 			b.add(new Object[] {"MENU", (Runnable) this::openMenu});
-			b.add(new Object[] {"CENTER", (Runnable) () -> app.getMapViewTrackingUtilities().backToLocationImpl()});
+			b.add(new Object[] {"CENTER", (Runnable) this::recenter});
 			boolean night = app.getDaynightHelper().isNightMode(ThemeUsageContext.MAP);
 			b.add(new Object[] {night ? "DAY" : "NIGHT", (Runnable) this::toggleDayNight});
 			b.add(new Object[] {"VEHICLE", (Runnable) this::pickVehicle});
@@ -842,6 +887,8 @@ public final class CyberDrive {
 					text.setTextAlign(Paint.Align.LEFT);
 				}
 			}
+
+			recenterRing(c, l, b);
 
 			// status line, bottom centre
 			String status;
