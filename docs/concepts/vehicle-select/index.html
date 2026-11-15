@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+</head>
+<body style="margin:0">
+<title>CyberNav Vehicle Select</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600&family=Share+Tech+Mono&display=swap">
+<style>
+/* Layout: one large turntable preview with a spec readout, then a 5 x 2 grid of selectable vehicle cards. Colours follow the Phosphor HUD tokens. */
+:root{
+  --ground:#020503;
+  --panel:#06100a;
+  --phosphor:#b8ff7a;
+  --ink-soft:#9dda68;
+  --ink-muted:#668e44;
+  --line:#3c5529;
+  --line-faint:#1f2d16;
+  --fill-active:rgba(184,255,122,.12);
+  --font-head:"Chakra Petch","Share Tech Mono",ui-monospace,sans-serif;
+  --font-data:"Share Tech Mono",ui-monospace,Consolas,monospace;
+  color-scheme:dark;
+}
+:root[data-phosphor="amber"]{--phosphor:#ffb000;--ink-soft:#d99600;--ink-muted:#9f6f01;--line:#533c02;--line-faint:#2a2003;--fill-active:rgba(255,176,0,.12);--panel:#0d0903}
+:root[data-phosphor="ice"]{--phosphor:#9fe8ff;--ink-soft:#84c3d6;--ink-muted:#5a8696;--line:#2b4a55;--line-faint:#14252b;--fill-active:rgba(159,232,255,.12);--panel:#050c10}
+:root[data-phosphor="white"]{--phosphor:#e6eef5;--ink-soft:#c1c8ce;--ink-muted:#858b90;--line:#3e4347;--line-faint:#1f2224;--fill-active:rgba(230,238,245,.1);--panel:#0a0b0c}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink-soft);font-family:var(--font-data);font-size:14px;line-height:1.55}
+.wrap{max-width:1180px;margin:0 auto;padding-block:36px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:28px}
+.top{display:flex;flex-wrap:wrap;gap:16px 24px;align-items:flex-end;justify-content:space-between}
+.top > .intro{min-width:0;display:flex;flex-direction:column;gap:6px}
+.eyebrow{font-size:12px;letter-spacing:.16em;color:var(--ink-muted);text-transform:uppercase}
+h1{margin:0;font-family:var(--font-head);font-weight:600;font-size:clamp(26px,4vw,38px);letter-spacing:.06em;color:var(--phosphor);text-transform:uppercase;text-wrap:balance;text-shadow:0 0 14px color-mix(in srgb,var(--phosphor) 45%,transparent)}
+.top p{margin:0;max-width:62ch}
+.seg{display:inline-flex;border:1px solid var(--line)}
+.seg button{font:inherit;font-size:12px;letter-spacing:.12em;text-transform:uppercase;background:none;color:var(--ink-muted);border:0;border-right:1px solid var(--line);padding:8px 12px;cursor:pointer}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--fill-active);color:var(--phosphor)}
+button:focus-visible{outline:1.6px solid var(--phosphor);outline-offset:2px}
+.preview{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(0,1fr);border:1px solid var(--line);background:var(--panel);clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px)}
+.preview canvas{display:block;width:100%;height:auto;aspect-ratio:760/420;border-right:1px solid var(--line)}
+.spec{padding:22px 22px 24px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.spec .tag{font-size:11px;letter-spacing:.18em;color:var(--ink-muted)}
+.spec h2{margin:0;font-family:var(--font-head);font-weight:600;font-size:30px;letter-spacing:.06em;text-transform:uppercase;color:var(--phosphor)}
+.spec dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:6px 18px;font-variant-numeric:tabular-nums}
+.spec dt{color:var(--ink-muted);letter-spacing:.12em;font-size:12px}
+.spec dd{margin:0;color:var(--ink-soft)}
+.spec .use{margin:0;color:var(--ink-soft)}
+.status{margin-top:auto;font-size:12px;letter-spacing:.12em;color:var(--phosphor);border-top:1px solid var(--line);padding-top:12px}
+.grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.card{width:100%;font:inherit;text-align:left;color:inherit;background:var(--panel);border:1px solid var(--line);padding:0;cursor:pointer;display:flex;flex-direction:column;transition:border-color .2s}
+.card canvas{display:block;width:100%;height:auto;aspect-ratio:300/200;border-bottom:1px solid var(--line-faint)}
+.card .meta{padding:10px 12px 12px;display:flex;flex-direction:column;gap:2px}
+.card b{font-family:var(--font-head);font-weight:500;font-size:16px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft)}
+.card .cls{font-size:11px;letter-spacing:.12em;color:var(--ink-muted);text-transform:uppercase}
+.card:hover{border-color:var(--ink-muted)}
+.card[aria-pressed="true"]{border-color:var(--phosphor);background:var(--fill-active)}
+.card[aria-pressed="true"] b{color:var(--phosphor)}
+.card[aria-pressed="true"] .cls::after{content:"  ·  SELECTED";color:var(--phosphor)}
+footer{font-size:12px;color:var(--ink-muted);max-width:70ch}
+@media (max-width:980px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:760px){.preview{grid-template-columns:1fr}.preview canvas{border-right:0;border-bottom:1px solid var(--line)}}
+@media (max-width:560px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="intro">
+      <span class="eyebrow">CyberNav // Vehicle select</span>
+      <h1>Choose your vehicle</h1>
+      <p>Pick the wireframe that marks you on the map. Drag the large preview to turn it. The notch on the ring shows which way the vehicle faces.</p>
+    </div>
+    <div class="seg" role="group" aria-label="Phosphor colour">
+      <button id="ph-nostromo" data-ph="nostromo" aria-pressed="true">Green</button>
+      <button id="ph-amber" data-ph="amber" aria-pressed="false">Amber</button>
+      <button id="ph-ice" data-ph="ice" aria-pressed="false">Ice</button>
+      <button id="ph-white" data-ph="white" aria-pressed="false">White</button>
+    </div>
+  </header>
+
+  <section class="preview" aria-label="Selected vehicle">
+    <canvas id="big" aria-label="Selected vehicle turning on a turntable"></canvas>
+    <div class="spec">
+      <span class="tag">YOUR VEHICLE</span>
+      <h2 id="v-name">Meridian</h2>
+      <dl>
+        <dt>CLASS</dt><dd id="v-class">Sedan</dd>
+        <dt>LENGTH</dt><dd id="v-len">4.5 m</dd>
+        <dt>WHEELS</dt><dd id="v-wheels">4</dd>
+      </dl>
+      <p class="use" id="v-use">Everyday city driving.</p>
+      <div class="status" id="v-status">MAP MARKER SET // MERIDIAN</div>
+    </div>
+  </section>
+
+  <ul class="grid" id="grid"></ul>
+
+  <footer>All ten designs are original generic vehicle types made for CyberNav. Your choice is remembered in this browser only.</footer>
+</div>
+
+<script>
+(function(){
+const DPR=2,NEAR=0.2;
+const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- 3D ---------- */
+function camera(eye,target,f,cx,cy){
+  const dx=target[0]-eye[0],dy=target[1]-eye[1],dz=target[2]-eye[2];
+  const yaw=Math.atan2(dx,dz),pitch=Math.atan2(-dy,Math.hypot(dx,dz));
+  return {x:eye[0],y:eye[1],z:eye[2],cy:Math.cos(yaw),sy:Math.sin(yaw),cp:Math.cos(pitch),sp:Math.sin(pitch),f,ox:cx,oy:cy};
+}
+function toCam(c,p){const dx=p[0]-c.x,dy=p[1]-c.y,dz=p[2]-c.z;const x1=dx*c.cy-dz*c.sy,z1=dx*c.sy+dz*c.cy;return [x1,dy*c.cp+z1*c.sp,-dy*c.sp+z1*c.cp];}
+function proj(c,q){return [c.ox+c.f*q[0]/q[2],c.oy-c.f*q[1]/q[2]];}
+function seg(ctx,c,a,b){const p=toCam(c,a),q=toCam(c,b);if(p[2]<NEAR||q[2]<NEAR)return;const s=proj(c,p),e=proj(c,q);ctx.moveTo(s[0],s[1]);ctx.lineTo(e[0],e[1]);}
+function avg(ps){const s=[0,0,0];ps.forEach(p=>{s[0]+=p[0];s[1]+=p[1];s[2]+=p[2]});return s.map(v=>v/ps.length);}
+function drawSolid(ctx,c,s,col,fill,lw,blur){
+  const qs=s.v.map(p=>toCam(c,p));if(qs.some(q=>q[2]<NEAR))return;
+  const ps=qs.map(q=>proj(c,q)),cen=avg(s.v),vis=[];
+  for(const f of s.faces){
+    let n=[0,0,0];
+    for(let k=0;k<f.length;k++){const a=s.v[f[k]],b=s.v[f[(k+1)%f.length]];n[0]+=(a[1]-b[1])*(a[2]+b[2]);n[1]+=(a[2]-b[2])*(a[0]+b[0]);n[2]+=(a[0]-b[0])*(a[1]+b[1]);}
+    const fc=avg(f.map(i=>s.v[i]));
+    if(n[0]*(fc[0]-cen[0])+n[1]*(fc[1]-cen[1])+n[2]*(fc[2]-cen[2])<0)n=n.map(v=>-v);
+    if(n[0]*(c.x-fc[0])+n[1]*(c.y-fc[1])+n[2]*(c.z-fc[2])>1e-6)vis.push(f);
+  }
+  const path=()=>{ctx.beginPath();for(const f of vis){f.forEach((i,k)=>k?ctx.lineTo(ps[i][0],ps[i][1]):ctx.moveTo(ps[i][0],ps[i][1]));ctx.closePath();}};
+  ctx.shadowBlur=0;ctx.globalAlpha=1;ctx.fillStyle=fill;path();ctx.fill();
+  ctx.strokeStyle=col;ctx.lineWidth=lw;ctx.shadowColor=col;ctx.shadowBlur=blur*DPR;path();ctx.stroke();
+}
+
+/* ---------- shape helpers (x = width, y = up, z = forward) ---------- */
+const HF=[[0,1,2,3],[5,4,7,6],[4,5,1,0],[3,2,6,7],[4,0,3,7],[1,5,6,2]];
+const hexa=v=>({v,faces:HF});
+const box=(x0,x1,y0,y1,z0,z1)=>hexa([[x0,y0,z0],[x1,y0,z0],[x1,y1,z0],[x0,y1,z0],[x0,y0,z1],[x1,y0,z1],[x1,y1,z1],[x0,y1,z1]]);
+// trapezoid prism: base rectangle at y0 (z zb0..zb1, half-width wb), top rectangle at y1 (z zt0..zt1, half-width wt)
+const shape=(zb0,zb1,wb,y0,zt0,zt1,wt,y1)=>hexa([[-wb,y0,zb0],[wb,y0,zb0],[wt,y1,zt0],[-wt,y1,zt0],[-wb,y0,zb1],[wb,y0,zb1],[wt,y1,zt1],[-wt,y1,zt1]]);
+// slab with a sloping roof: rear top height yb, front top height yf
+const slab=(w,y0,yb,yf,zb0,zb1,zt0,zt1)=>hexa([[-w,y0,zb0],[w,y0,zb0],[w,yb,zt0],[-w,yb,zt0],[-w,y0,zb1],[w,y0,zb1],[w,yf,zt1],[-w,yf,zt1]]);
+function wheel(cx,cy,cz,r,wd,n){
+  n=n||14;const v=[],faces=[[],[]];
+  [-1,1].forEach((sd,si)=>{for(let k=0;k<n;k++){const a=(k+.5)/n*Math.PI*2;v.push([cx+sd*wd/2,cy+r*Math.sin(a),cz+r*Math.cos(a)]);faces[si].push(si*n+k);}});
+  for(let k=0;k<n;k++)faces.push([k,(k+1)%n,n+(k+1)%n,n+k]);
+  return {v,faces};
+}
+const wheels4=(x,r,wd,zf,zr)=>[wheel(-x,r,zf,r,wd),wheel(x,r,zf,r,wd),wheel(-x,r,zr,r,wd),wheel(x,r,zr,r,wd)];
+const shift=(s,dx,dy,dz)=>({v:s.v.map(p=>[p[0]+dx,p[1]+dy,p[2]+dz]),faces:s.faces});
+const mirror=s=>({v:s.v.map(p=>[-p[0],p[1],p[2]]),faces:s.faces});
+// a line with an outward normal: drawn only when that side faces the camera
+const L=(a,b,n)=>({a,b,n});
+const rearLights=(w,y,z)=>[L([-w,y,z],[-w+.35,y,z],[0,0,-1]),L([w-.35,y,z],[w,y,z],[0,0,-1])];
+
+/* ---------- the ten vehicles ---------- */
+const VEHICLES=[
+{id:'meridian',name:'Meridian',cls:'Sedan',len:'4.5 m',wh:4,use:'Everyday city driving.',build:()=>({
+  parts:[...wheels4(.84,.34,.24,1.38,-1.38),slab(.9,.26,.8,.7,-2.25,2.25,-2.2,2.05),shape(-1.25,.7,.84,.78,-.95,.2,.66,1.3)],
+  lines:[...rearLights(.88,.62,-2.26),L([-.9,.55,-2.2],[-.9,.55,2.2],[-1,0,0]),L([.9,.55,-2.2],[.9,.55,2.2],[1,0,0])]})},
+{id:'talon',name:'Talon',cls:'Reverse trike',len:'3.4 m',wh:3,use:'Three-wheel road racers and trikes.',build:()=>{
+  const fender=hexa([[.64,.6,.78],[.96,.6,.78],[.96,.68,.78],[.64,.68,.78],[.7,.5,1.5],[.9,.5,1.5],[.9,.55,1.5],[.7,.55,1.5]]);
+  const wing=hexa([[.38,.5,.7],[.38,.5,1.3],[.38,.57,1.3],[.38,.57,.7],[.7,.52,.92],[.7,.52,1.25],[.7,.57,1.25],[.7,.57,.92]]);
+  return {parts:[wheel(-.8,.3,1.1,.3,.22),wheel(.8,.3,1.1,.3,.22),wheel(0,.33,-1.05,.33,.26),
+    box(-.24,.24,.18,.42,-.3,.4),
+    hexa([[-.42,.28,.4],[.42,.28,.4],[.42,.84,.4],[-.42,.84,.4],[-.2,.3,1.85],[.2,.3,1.85],[.2,.42,1.85],[-.2,.42,1.85]]),
+    hexa([[-.07,.66,-1.5],[.07,.66,-1.5],[.05,.76,-1.5],[-.05,.76,-1.5],[-.38,.4,.4],[.38,.4,.4],[.38,.84,.4],[-.38,.84,.4]]),
+    shape(-.85,-.2,.2,.78,-.78,-.38,.13,.9),
+    shape(.36,.48,.24,.82,.1,.18,.17,1.02),
+    fender,mirror(fender),wing,mirror(wing)],
+    lines:[L([-.15,.33,-1.05],[-.18,.45,-.4]),L([.15,.33,-1.05],[.18,.45,-.4]),
+      L([-.3,.86,.24],[.3,.86,.24]),
+      L([-.18,.36,1.86],[-.06,.38,1.86],[0,0,1]),L([.06,.38,1.86],[.18,.36,1.86],[0,0,1]),
+      L([-.04,.71,-1.51],[.04,.71,-1.51],[0,0,-1])]};}},
+{id:'rancher',name:'Rancher',cls:'Pickup / ute',len:'5.3 m',wh:4,use:'Utes and pickups.',build:()=>({
+  parts:[...wheels4(.9,.42,.3,1.65,-1.6),slab(.95,.35,1.0,.92,-.1,2.65,-.1,2.45),shape(-.1,1.35,.9,.98,0,1.0,.78,1.75),
+    box(-.95,.95,.35,.6,-2.65,-.1),box(-.95,-.85,.6,1.0,-2.65,-.1),box(.85,.95,.6,1.0,-2.65,-.1),box(-.85,.85,.6,1.0,-2.65,-2.55)],
+  lines:[...rearLights(.93,.85,-2.66)]})},
+{id:'courier',name:'Courier',cls:'Van',len:'5.0 m',wh:4,use:'Delivery and work vans.',build:()=>({
+  parts:[...wheels4(.9,.38,.28,1.55,-1.6),box(-1,1,.32,2.15,-2.5,1.5),shape(1.5,2.5,1,.32,1.5,1.95,.95,1.5)],
+  lines:[...rearLights(.98,.9,-2.51),L([1.01,.5,-.2],[1.01,1.9,-.2],[1,0,0]),L([1.01,.5,1.1],[1.01,1.9,1.1],[1,0,0]),L([-1.01,1.5,-2.3],[-1.01,1.5,1.3],[-1,0,0]),L([1.01,1.5,-2.3],[1.01,1.5,-.2],[1,0,0]),L([0,.4,-2.51],[0,2.05,-2.51],[0,0,-1])]})},
+{id:'strider',name:'Strider',cls:'Motorcycle',len:'2.1 m',wh:2,use:'Bikes and scooters.',build:()=>({
+  parts:[wheel(0,.33,-.72,.33,.12,12),wheel(0,.33,.72,.33,.12,12),box(-.17,.17,.22,.55,-.25,.3),shape(0,.6,.2,.55,.08,.52,.14,.78),shape(-.75,0,.14,.58,-.7,-.05,.12,.68),box(-.08,.08,.82,.98,.55,.63)],
+  lines:[L([-.07,.33,.72],[-.07,.95,.52]),L([.07,.33,.72],[.07,.95,.52]),L([-.36,1.0,.5],[.36,1.0,.5]),L([.2,.3,0],[.2,.4,-.85]),L([.17,.32,-.2],[.2,.3,0])]})},
+{id:'shuttle',name:'Shuttle',cls:'Shuttlecraft',len:'5.3 m',wh:0,use:'Short-range shuttle. Hovers just above the road.',hover:true,build:()=>{
+  const nac=hexa([[1.3,.35,-2.45],[1.72,.35,-2.45],[1.72,.82,-2.45],[1.3,.82,-2.45],[1.3,.42,1.25],[1.72,.42,1.25],[1.72,.66,1.25],[1.3,.66,1.25]]);
+  const pylon=box(1.08,1.32,.52,.72,-1.6,.4);
+  return {parts:[box(-1.1,1.1,.5,1.85,-2.0,1.55),
+    hexa([[-1.1,.5,1.55],[1.1,.5,1.55],[1.1,1.85,1.55],[-1.1,1.85,1.55],[-.9,.5,2.5],[.9,.5,2.5],[.9,1.0,2.5],[-.9,1.0,2.5]]),
+    box(-.95,.95,.62,1.72,-2.4,-2.0),nac,mirror(nac),pylon,mirror(pylon)],
+    lines:[L([-.98,1.52,1.93],[.98,1.52,1.93],[0,.75,.66]),L([-.96,1.3,2.17],[.96,1.3,2.17],[0,.75,.66]),
+      L([-.33,1.3,2.17],[-.33,1.52,1.93],[0,.75,.66]),L([.33,1.3,2.17],[.33,1.52,1.93],[0,.75,.66]),
+      ...[-1,1].flatMap(sd=>[L([sd*1.11,.8,-.9],[sd*1.11,1.62,-.9],[sd,0,0]),L([sd*1.11,.8,.3],[sd*1.11,1.62,.3],[sd,0,0]),L([sd*1.11,1.62,-.9],[sd*1.11,1.62,.3],[sd,0,0]),
+        L([sd*1.73,.6,-2.2],[sd*1.73,.58,1.0],[sd,0,0]),L([sd*1.1,1.3,-1.9],[sd*1.1,1.3,-1.2],[sd,0,0])]),
+      L([-.7,1.2,-2.41],[.7,1.2,-2.41],[0,0,-1]),L([-.7,1.1,-2.41],[.7,1.1,-2.41],[0,0,-1]),
+      L([1.35,.6,-2.46],[1.67,.6,-2.46],[0,0,-1]),L([-1.67,.6,-2.46],[-1.35,.6,-2.46],[0,0,-1])]};}},
+{id:'prospector',name:'Prospector',cls:'Six-wheel rover',len:'4.6 m',wh:6,use:'Off-road and 4WD.',build:()=>({
+  parts:[...[-1.45,0,1.45].flatMap(z=>[wheel(-1.05,.45,z,.45,.34),wheel(1.05,.45,z,.45,.34)]),box(-.9,.9,.45,.85,-2.2,2.2),shape(0,2.0,.85,.85,.3,1.5,.7,1.75),box(-.85,.85,.85,1.6,-2.15,-.05)],
+  lines:[L([.6,1.6,-1.8],[.6,2.6,-1.8]),L([.45,2.45,-1.8],[.75,2.45,-1.8]),L([-.7,1.7,-2.0],[-.7,1.7,-.2]),L([.2,1.7,-2.0],[.2,1.7,-.2]),L([-.7,1.7,-2.0],[.2,1.7,-2.0]),...rearLights(.88,.72,-2.21)]})},
+{id:'haulmaster',name:'Haulmaster',cls:'Semi tractor',len:'6.4 m',wh:6,use:'Trucks and heavy haulage.',build:()=>{
+  const tank=box(-1.2,-.95,.55,.95,-.6,.2);
+  return {parts:[...[2.15,-1.4,-2.5].flatMap(z=>[wheel(-1.0,.5,z,.5,.42),wheel(1.0,.5,z,.5,.42)]),box(-.5,.5,.55,.9,-3.0,1.4),tank,mirror(tank),
+    box(-.6,.6,.9,1.05,-2.4,-1.3),box(-1.15,1.15,.6,2.7,.2,1.3),shape(1.3,3.2,1.2,.55,1.3,3.0,1.15,2.9)],
+    lines:[L([-1.25,.9,.15],[-1.25,3.25,.15]),L([1.25,.9,.15],[1.25,3.25,.15]),L([-1.2,1.8,3.08],[1.2,1.8,3.08],[0,0,1])]};}},
+{id:'lancet',name:'Lancet',cls:'Sports car',len:'4.4 m',wh:4,use:'Low, fast cars.',build:()=>({
+  parts:[wheel(-.9,.34,1.35,.34,.26),wheel(.9,.34,1.35,.34,.26),wheel(-.9,.36,-1.3,.36,.3),wheel(.9,.36,-1.3,.36,.3),
+    hexa([[-.98,.22,-2.2],[.98,.22,-2.2],[.98,.85,-2.2],[-.98,.85,-2.2],[-.9,.22,2.25],[.9,.22,2.25],[.9,.42,2.25],[-.9,.42,2.25]]),
+    shape(-1.0,.6,.78,.62,-.85,0,.55,1.12),box(-.95,.95,1.08,1.14,-2.25,-1.85)],
+  lines:[L([-.6,.82,-2.0],[-.6,1.08,-2.0]),L([.6,.82,-2.0],[.6,1.08,-2.0]),...rearLights(.96,.7,-2.21)]})},
+{id:'metro',name:'Metro',cls:'Bus',len:'10.5 m',wh:4,use:'Buses and coaches.',build:()=>({
+  parts:[...wheels4(1.18,.5,.3,3.6,-3.0),box(-1.27,1.27,.35,3.1,-5.25,5.25),box(-.8,.8,3.1,3.35,-2.5,1.0)],
+  lines:[...[-1,1].flatMap(s=>[L([s*1.28,1.6,-4.9],[s*1.28,1.6,4.9],[s,0,0]),L([s*1.28,2.75,-4.9],[s*1.28,2.75,4.9],[s,0,0])]),
+    ...[[3.9,4.8],[-.3,.6]].flatMap(([a,b])=>[L([1.28,.45,a],[1.28,2.75,a],[1,0,0]),L([1.28,.45,b],[1.28,2.75,b],[1,0,0]),L([1.28,.45,(a+b)/2],[1.28,2.75,(a+b)/2],[1,0,0])]),
+    L([-1.2,1.3,5.26],[1.2,1.3,5.26],[0,0,1]),...rearLights(1.25,.9,-5.26)]})},
+];
+function prep(p){
+  const cen=avg(p.v);
+  p.n=p.faces.map(f=>{let n=[0,0,0];for(let k=0;k<f.length;k++){const a=p.v[f[k]],b=p.v[f[(k+1)%f.length]];n[0]+=(a[1]-b[1])*(a[2]+b[2]);n[1]+=(a[2]-b[2])*(a[0]+b[0]);n[2]+=(a[0]-b[0])*(a[1]+b[1]);}
+    const fc=avg(f.map(i=>p.v[i]));if(n[0]*(fc[0]-cen[0])+n[1]*(fc[1]-cen[1])+n[2]*(fc[2]-cen[2])<0)n=n.map(v=>-v);
+    const l=Math.hypot(...n)||1;return {n:n.map(v=>v/l),c:fc};});
+  const map=new Map();
+  p.faces.forEach((f,fi)=>f.forEach((a,k)=>{const b=f[(k+1)%f.length],key=a<b?a+'-'+b:b+'-'+a;if(!map.has(key))map.set(key,{a,b,f:[]});map.get(key).f.push(fi);}));
+  p.edges=[...map.values()].map(e=>{
+    if(e.f.length!==2)return {a:e.a,b:e.b,crease:true,f:e.f};
+    const n1=p.n[e.f[0]].n,n2=p.n[e.f[1]].n;
+    return {a:e.a,b:e.b,f:e.f,crease:n1[0]*n2[0]+n1[1]*n2[1]+n1[2]*n2[2]<Math.cos(Math.PI/6)};
+  });
+}
+VEHICLES.forEach(V=>{
+  V.m=V.build();V.m.parts.forEach(prep);
+  let r=0,h=0;V.m.parts.forEach(p=>p.v.forEach(q=>{r=Math.max(r,Math.hypot(q[0],q[2]));h=Math.max(h,q[1]);}));
+  V.r=r;V.h=h;
+});
+
+/* ---------- renderer: depth buffer + hidden-line edges ---------- */
+function makeView(cv,w,h){cv.width=w*DPR;cv.height=h*DPR;const ctx=cv.getContext('2d');ctx.setTransform(DPR,0,0,DPR,0,0);return {ctx,w,h,D:new Float32Array(w*h)};}
+function rasterTri(D,w,h,A,B,C){
+  const ar=(B[0]-A[0])*(C[1]-A[1])-(B[1]-A[1])*(C[0]-A[0]);if(Math.abs(ar)<1e-6)return;
+  const x0=Math.max(0,Math.floor(Math.min(A[0],B[0],C[0]))),x1=Math.min(w-1,Math.ceil(Math.max(A[0],B[0],C[0])));
+  const y0=Math.max(0,Math.floor(Math.min(A[1],B[1],C[1]))),y1=Math.min(h-1,Math.ceil(Math.max(A[1],B[1],C[1])));
+  for(let y=y0;y<=y1;y++){const py=y+.5;for(let x=x0;x<=x1;x++){const px=x+.5;
+    const w0=((C[0]-B[0])*(py-B[1])-(C[1]-B[1])*(px-B[0]))/ar,w1=((A[0]-C[0])*(py-C[1])-(A[1]-C[1])*(px-C[0]))/ar,w2=1-w0-w1;
+    if(w0<-1e-4||w1<-1e-4||w2<-1e-4)continue;
+    const iz=w0*A[2]+w1*B[2]+w2*C[2],i=y*w+x;if(iz>D[i])D[i]=iz;}}
+}
+function P3(c,p){const q=toCam(c,p);return q[2]<NEAR?null:[c.ox+c.f*q[0]/q[2],c.oy-c.f*q[1]/q[2],1/q[2]];}
+// add the visible pieces of a 3D segment to the current path
+function visSeg(ctx,view,c,a,b,eps){
+  const P=P3(c,a),Q=P3(c,b);if(!P||!Q)return;
+  const {D,w,h}=view,len=Math.hypot(Q[0]-P[0],Q[1]-P[1]),n=Math.max(2,Math.ceil(len/1.2));
+  let start=null,prev=null;
+  for(let i=0;i<=n;i++){
+    const t=i/n,x=P[0]+(Q[0]-P[0])*t,y=P[1]+(Q[1]-P[1])*t,iz=P[2]+(Q[2]-P[2])*t;
+    const xi=Math.floor(x),yi=Math.floor(y);let vis=true;
+    if(xi>=1&&yi>=1&&xi<w-1&&yi<h-1){let d=Infinity;for(let oy=-1;oy<=1;oy++)for(let ox=-1;ox<=1;ox++){const v=D[(yi+oy)*w+xi+ox];if(v<d)d=v;}vis=iz*(1+eps)>=d;}
+    if(vis){if(!start)start=[x,y];prev=[x,y];}
+    else if(start){ctx.moveTo(start[0],start[1]);ctx.lineTo(prev[0],prev[1]);start=null;}
+  }
+  if(start){ctx.moveTo(start[0],start[1]);ctx.lineTo(prev[0],prev[1]);}
+}
+function draw(view,V,ang,col,bg,big){
+  const {ctx,w,h,D}=view;
+  ctx.shadowBlur=0;ctx.globalAlpha=1;ctx.fillStyle=bg;ctx.fillRect(0,0,w,h);
+  const R=Math.max(V.r,V.h*.9,1.4),elev=big?.42:.5,dist=R*3.4;
+  const eye=[Math.sin(ang)*dist*Math.cos(elev),dist*Math.sin(elev),Math.cos(ang)*dist*Math.cos(elev)];
+  const f=Math.min(w,h*1.25)*0.5*dist/(R*1.25)*(big?.72:.88);
+  const c=camera(eye,[0,V.h*.32,0],f,w/2,h*(big?.52:.56));
+  // 1. depth buffer of every front-facing face
+  D.fill(0);
+  const faceFront=[];
+  V.m.parts.forEach((p,pi)=>{
+    const sp=p.v.map(v=>P3(c,v));
+    faceFront[pi]=p.n.map(({n,c:fc})=>n[0]*(c.x-fc[0])+n[1]*(c.y-fc[1])+n[2]*(c.z-fc[2])>0);
+    p.faces.forEach((fa,fi)=>{if(!faceFront[pi][fi])return;for(let k=1;k<fa.length-1;k++){const A=sp[fa[0]],B=sp[fa[k]],C=sp[fa[k+1]];if(A&&B&&C)rasterTri(D,w,h,A,B,C);}});
+  });
+  // 2. turntable grid, ring and heading notch (hidden where the vehicle covers them)
+  const gr=R*1.18,step=R>4?1:.5;
+  ctx.strokeStyle=col;ctx.shadowColor=col;
+  for(let g=-Math.floor(gr/step)*step;g<=gr;g+=step){
+    const s2=Math.sqrt(Math.max(0,gr*gr-g*g));ctx.globalAlpha=Math.abs(g)<1e-6?.28:.12;ctx.lineWidth=.8;ctx.shadowBlur=0;
+    ctx.beginPath();visSeg(ctx,view,c,[g,0,-s2],[g,0,s2],.004);visSeg(ctx,view,c,[-s2,0,g],[s2,0,g],.004);ctx.stroke();
+  }
+  ctx.globalAlpha=.6;ctx.lineWidth=1.2;ctx.shadowBlur=3*DPR;ctx.beginPath();
+  for(let k=0;k<64;k++){const a0=k/64*Math.PI*2,a1=(k+1)/64*Math.PI*2;visSeg(ctx,view,c,[Math.sin(a0)*gr,0,Math.cos(a0)*gr],[Math.sin(a1)*gr,0,Math.cos(a1)*gr],.004);}
+  ctx.stroke();
+  const t=R*.12;ctx.globalAlpha=1;ctx.lineWidth=1.6;ctx.beginPath();
+  visSeg(ctx,view,c,[-t,0,gr],[0,0,gr+t*1.6],.004);visSeg(ctx,view,c,[0,0,gr+t*1.6],[t,0,gr],.004);ctx.stroke();
+  if(V.hover){ctx.globalAlpha=.45;ctx.lineWidth=1;ctx.shadowBlur=0;ctx.setLineDash([3,4]);ctx.beginPath();
+    for(let k=0;k<40;k++){const a0=k/40*Math.PI*2,a1=(k+1)/40*Math.PI*2;visSeg(ctx,view,c,[Math.sin(a0)*1.9,.02,Math.cos(a0)*2.9],[Math.sin(a1)*1.9,.02,Math.cos(a1)*2.9],.004);}
+    ctx.stroke();ctx.setLineDash([]);}
+  // 3. vehicle edges: creases and silhouettes only, depth-tested
+  ctx.globalAlpha=1;ctx.lineWidth=big?1.5:1.3;ctx.shadowBlur=(big?5:4)*DPR;ctx.beginPath();
+  V.m.parts.forEach((p,pi)=>{
+    const ff=faceFront[pi];
+    p.edges.forEach(e=>{
+      const fr=e.f.map(fi=>ff[fi]);
+      if(!fr.some(Boolean))return;                       // both faces turned away
+      if(!e.crease&&fr[0]===fr[1])return;                // smooth edge that is not a silhouette
+      visSeg(ctx,view,c,p.v[e.a],p.v[e.b],.012);
+    });
+  });
+  ctx.stroke();
+  // 4. detail lines on the side they belong to
+  ctx.lineWidth=big?1.4:1.2;ctx.shadowBlur=(big?7:5)*DPR;ctx.beginPath();
+  V.m.lines.forEach(l=>{if(l.n&&l.n[0]*(c.x-l.a[0])+l.n[1]*(c.y-l.a[1])+l.n[2]*(c.z-l.a[2])<=0)return;visSeg(ctx,view,c,l.a,l.b,.02);});
+  ctx.stroke();ctx.shadowBlur=0;
+}
+
+/* ---------- page ---------- */
+const root=document.documentElement,grid=document.getElementById('grid');
+let colors={},sel='meridian';
+try{const s=localStorage.getItem('cybernav.vehicle');if(VEHICLES.some(v=>v.id===s))sel=s;}catch(e){}
+try{const p=localStorage.getItem('cybernav.phosphor');if(p&&p!=='nostromo')root.dataset.phosphor=p;}catch(e){}
+function readColors(){const cs=getComputedStyle(root);colors={col:cs.getPropertyValue('--phosphor').trim(),bg:cs.getPropertyValue('--panel').trim()};}
+const cards=VEHICLES.map((V,i)=>{
+  const li=document.createElement('li');
+  li.innerHTML=`<button class="card" id="veh-${V.id}" aria-pressed="false"><canvas aria-hidden="true"></canvas><span class="meta"><b>${V.name}</b><span class="cls">${V.cls}</span></span></button>`;
+  grid.append(li);
+  const btn=li.querySelector('button');btn.addEventListener('click',()=>select(V.id));
+  return {V,btn,view:makeView(li.querySelector('canvas'),300,200),visible:true,phase:i*0.63};
+});
+const big=makeView(document.getElementById('big'),760,420);
+function select(id){
+  sel=id;const V=VEHICLES.find(v=>v.id===id);
+  try{localStorage.setItem('cybernav.vehicle',id);}catch(e){}
+  cards.forEach(cd=>cd.btn.setAttribute('aria-pressed',String(cd.V.id===id)));
+  document.getElementById('v-name').textContent=V.name;
+  document.getElementById('v-class').textContent=V.cls;
+  document.getElementById('v-len').textContent=V.len;
+  document.getElementById('v-wheels').textContent=V.wh?String(V.wh):'None (hover)';
+  document.getElementById('v-use').textContent=V.use;
+  document.getElementById('v-status').textContent='MAP MARKER SET // '+V.name.toUpperCase();
+  frame(performance.now(),true);
+}
+document.querySelectorAll('[data-ph]').forEach(b=>{
+  b.setAttribute('aria-pressed',String((root.dataset.phosphor||'nostromo')===b.dataset.ph));
+  b.addEventListener('click',()=>{
+    const p=b.dataset.ph;if(p==='nostromo')delete root.dataset.phosphor;else root.dataset.phosphor=p;
+    try{localStorage.setItem('cybernav.phosphor',p);}catch(e){}
+    document.querySelectorAll('[data-ph]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
+    readColors();frame(performance.now(),true);
+  });
+});
+if('IntersectionObserver' in window){const io=new IntersectionObserver(es=>es.forEach(e=>{const cd=cards.find(c=>c.view.ctx.canvas===e.target);if(cd)cd.visible=e.isIntersecting;}));cards.forEach(cd=>io.observe(cd.view.ctx.canvas));}
+const CARD_ANGLE=.8;let spin=0,drag=null,lastNow=performance.now(),last=0;
+const bigCv=document.getElementById('big');
+bigCv.style.cursor='grab';bigCv.style.touchAction='pan-y';
+bigCv.addEventListener('pointerdown',e=>{drag={x:e.clientX,s:spin};bigCv.setPointerCapture(e.pointerId);bigCv.style.cursor='grabbing';});
+bigCv.addEventListener('pointermove',e=>{if(!drag)return;spin=drag.s+(e.clientX-drag.x)*.01;drawBig();});
+const endDrag=()=>{drag=null;bigCv.style.cursor='grab';};
+bigCv.addEventListener('pointerup',endDrag);bigCv.addEventListener('pointercancel',endDrag);
+function drawBig(){const V=VEHICLES.find(v=>v.id===sel);draw(big,V,CARD_ANGLE+spin,colors.col,colors.bg,true);}
+function drawCards(){cards.forEach(cd=>draw(cd.view,cd.V,CARD_ANGLE,colors.col,colors.bg,false));}
+function frame(now,all){if(all)drawCards();drawBig();}
+function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-lastNow)/1000);lastNow=now;if(!drag)spin+=dt*.3;if(now-last<40)return;last=now;drawBig();}
+readColors();drawCards();select(sel);
+if(!reduce)requestAnimationFrame(loop);
+})();
+</script>
+
+</body>
+</html>
