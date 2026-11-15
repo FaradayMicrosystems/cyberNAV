@@ -201,6 +201,10 @@ def minimal_night(root):
             for c in a.iter():
                 if c.get("nightMode") == "true":
                     c.set("color", ROUTE); c.set("color_0", "#00000000"); c.set("color_2", "#806F1F"); c.set("color_3", MAIN_ROAD)
+    for a in root.iter("renderingAttribute"):  # 3D buildings colour "map style": the wireframe green
+        if a.get("name") == "base3DBuildingsColor":
+            for c in a.iter():
+                if c.get("attrColorValue"): c.set("attrColorValue", MAIN_ROAD)
     stats["labels"] = night_off(root.find("text"))
     stats["icons"] = night_off(root.find("point"))
     stats["areas"] = night_off(root.find("polygon"), keep=lambda r: r.get("tag") in KEEP_POLYGONS)

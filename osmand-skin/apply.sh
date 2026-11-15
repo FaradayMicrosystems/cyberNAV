@@ -39,7 +39,10 @@ edit "$APP/src/net/osmand/plus/views/OsmandMapTileView.java" 'FOG_NIGHTMODE_COLO
 edit "$APP/src/net/osmand/plus/views/OsmandMapTileView.java" 'SKY_NIGHTMODE_COLOR = 0xff304080;' 'SKY_NIGHTMODE_COLOR = 0xff000000; // cyberNAV: black'
 edit "$S" '"osmand_theme", isSupportSystemTheme\(\) \? SYSTEM_DEFAULT_THEME : OSMAND_LIGHT_THEME\)' '"osmand_theme", OSMAND_DARK_THEME)'
 edit "$S" '"enable_3d_map_objects", false\)' '"enable_3d_map_objects", true)'
-edit "$S" 'BUILDINGS_3D_DEFAULT_COLOR = 0x666666;' 'BUILDINGS_3D_DEFAULT_COLOR = 0x2F6B1F;'
+# 3D buildings colour = the wireframe edge colour: phosphor green by default, a custom colour so it
+# can be changed under Configure map > 3D buildings > Colour (presets added to the palette in step 11)
+edit "$S" 'BUILDINGS_3D_DEFAULT_COLOR = 0x666666;' 'BUILDINGS_3D_DEFAULT_COLOR = 0xB8FF7A;'
+edit "$S" '"buildings_3d_color_style", 1\)' '"buildings_3d_color_style", 2)'
 edit "$S" 'BUILDINGS_3D_ALPHA_DEF_VALUE = 0\.5f;' 'BUILDINGS_3D_ALPHA_DEF_VALUE = 1.0f;'
 
 echo "3a. Map faces the direction of travel (not compass): chase-cam 3D view 45° down like the Unit 01 concept, zoomed in close while driving"
@@ -136,5 +139,18 @@ edit "$W" '(\tMAX_SPEED\("max_speed",.*?), RIGHT\),' '\1, LEFT),'
 edit "$W" '(\tCURRENT_TIME\("plain_time",.*?), RIGHT\),' '\1, LEFT),'
 WA="$APP/src/net/osmand/plus/settings/backend/WidgetsAvailabilityHelper.java"
 edit "$WA" 'regWidgetVisibility\(MAX_SPEED, none\);' 'regWidgetVisibility(MAX_SPEED, CAR, TRUCK, MOTORCYCLE, MOPED); // cyberNAV\n\t\tregWidgetVisibility(CURRENT_TIME, CAR, TRUCK, MOTORCYCLE, MOPED); // cyberNAV'
+
+# Building colour presets first in the colour palette: phosphor green, red-orange, bright orange
+python3 - "$RES/color-palette/user_palette_default.txt" <<'PY3'
+import sys
+p = sys.argv[1]
+lines = open(p, encoding="utf-8").read().splitlines()
+head = [l for l in lines if l.startswith("#")]
+rows = [l.split(",", 1)[1] for l in lines if l.strip() and not l.startswith("#")]
+ours = ["184,255,122,255", "255,107,61,255", "255,115,0,255"]
+rows = ours + [r for r in rows if r not in ours]
+open(p, "w", encoding="utf-8").write("\n".join(head + [f"{i},{r}" for i, r in enumerate(rows, 1)]) + "\n")
+print(f"  colour palette: cyberNAV building colours first ({len(rows)} colours)")
+PY3
 
 echo "Skin applied."

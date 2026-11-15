@@ -2,6 +2,10 @@
 
 Every change gets its own version: v0.0.N, one higher per release. GitHub Actions picks the number and publishes each release with the list of commits it contains; this file keeps the human-readable history. Downloads: https://github.com/FaradayMicrosystems/cyberNAV/releases
 
+## v0.0.16 (2026-11-15)
+
+- Building colour is now a setting: Configure map > 3D buildings > Colour. The first three colours in the palette are phosphor green (default), red-orange (#FF6B3D) and bright orange (#FF7300); any other colour works too.
+
 ## v0.0.15 (2026-11-15)
 
 Map screen modelled on the "Unit 01 · CyberNav · P1 green" concept screen.
