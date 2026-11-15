@@ -56,6 +56,13 @@ public final class CyberDrive {
 	private static final int NONE = 0, NEXT = 1, END = 2;
 	private static final long PENDING_MS = 5 * 60_000L;
 
+	/** Must match the ids in vehicles/make_vehicles.py. */
+	private static final String[] VEHICLE_IDS = {"meridian", "talon", "rancher", "courier", "strider",
+			"shuttle", "prospector", "haulmaster", "lancet", "metro"};
+	private static final String[] VEHICLE_NAMES = {"MERIDIAN · SEDAN", "TALON · REVERSE TRIKE", "RANCHER · PICKUP / UTE",
+			"COURIER · VAN", "STRIDER · MOTORCYCLE", "SHUTTLE · SHUTTLECRAFT", "PROSPECTOR · SIX-WHEEL ROVER",
+			"HAULMASTER · SEMI TRACTOR", "LANCET · SPORTS CAR", "METRO · BUS"};
+
 	private static int pending = NONE;
 	private static long pendingAt;
 	private static long addedAt;
@@ -261,6 +268,30 @@ public final class CyberDrive {
 			}
 		}
 
+		/** The CyberNav vehicles (3D models bundled by vehicles/make_vehicles.py) as the map marker. */
+		private void pickVehicle() {
+			String[] ids = VEHICLE_IDS;
+			String[] labels = new String[ids.length];
+			String current = app.getSettings().NAVIGATION_ICON.get();
+			int checked = -1;
+			for (int i = 0; i < ids.length; i++) {
+				labels[i] = VEHICLE_NAMES[i];
+				if (("model_cybernav_" + ids[i]).equals(current)) {
+					checked = i;
+				}
+			}
+			new android.app.AlertDialog.Builder(act)
+					.setTitle("CHOOSE YOUR VEHICLE")
+					.setSingleChoiceItems(labels, checked, (d, which) -> {
+						String model = "model_cybernav_" + ids[which];
+						app.getSettings().NAVIGATION_ICON.set(model);
+						app.getSettings().LOCATION_ICON.set(model);
+						d.dismiss();
+					})
+					.setNegativeButton(android.R.string.cancel, null)
+					.show();
+		}
+
 		private void toggleDayNight() {
 			OsmandSettings s = app.getSettings();
 			boolean night = app.getDaynightHelper().isNightMode(ThemeUsageContext.MAP);
@@ -454,6 +485,7 @@ public final class CyberDrive {
 			b.add(new Object[] {"CENTER", (Runnable) () -> app.getMapViewTrackingUtilities().backToLocationImpl()});
 			boolean night = app.getDaynightHelper().isNightMode(ThemeUsageContext.MAP);
 			b.add(new Object[] {night ? "DAY" : "NIGHT", (Runnable) this::toggleDayNight});
+			b.add(new Object[] {"VEHICLE", (Runnable) this::pickVehicle});
 			b.add(new Object[] {"STOCK UI", (Runnable) () -> setOn(false)});
 			if (s.routed && !s.following) {
 				b.add(new Object[] {"START", (Runnable) () -> act.getMapActions().startNavigation()});

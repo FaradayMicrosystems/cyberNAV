@@ -14,6 +14,8 @@ same length or shorter (padded with spaces), so nothing else in the library move
    (wall corners, ground line and roofline), 1.5 px wide at any zoom. Faces still hide what is
    behind them, so it reads as hidden-line wireframe.
 3. Fallback building shader (used while the engine starts up): the same colours, much darker.
+4. 3D marker shader (the vehicle under your position): flat colours without the white
+   highlight, so the cyberNAV vehicle wireframe stays phosphor green on black.
 
 Every shader input and uniform stays in use, so the engine's variable lookups still succeed.
 
@@ -46,6 +48,12 @@ PATCHES = [
      b"vec3 color=mix(v2f_pointColor.rgb,face,e);"  # edges in the 3D buildings colour setting
      b"float alpha=param_fs_alpha*min(param_fs_fadeHeight/v2f_height,1.0);"
      b"FRAGMENT_COLOR_OUTPUT=vec4(color,alpha);}"),
+    ("flat-lit 3D markers (model shader): the vehicle wireframe keeps its exact colours, no white glare",
+     rb"vec3 v = normalize\(param_fs_cameraPosition - v2f_pointPosition\);\s*vec3 n = normalize\(v2f_pointNormal\);\s*"
+     rb"vec3 r = reflect\(param_fs_lightDirection, n\);[^}]*?FRAGMENT_COLOR_OUTPUT = vec4\(mix\(dc, vec3\(1\.0\), h\), v2f_pointColor\.a\);",
+     b"vec3 v=normalize(param_fs_cameraPosition-v2f_pointPosition);vec3 n=normalize(v2f_pointNormal);"
+     b"float k=.85+.15*abs(dot(n,v))+.001*dot(n,param_fs_lightDirection);"
+     b"FRAGMENT_COLOR_OUTPUT=vec4(clamp(v2f_pointColor.rgb*k,0.0,1.0),v2f_pointColor.a);"),
     ("dark faces (fallback building shader)",
      rb"vec3 color = v2f_pointColor\.rgb \* d;",
      b"vec3 color=v2f_pointColor.rgb*d*.08;"),

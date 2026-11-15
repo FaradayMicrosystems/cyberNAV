@@ -2,6 +2,12 @@
 
 Every change gets its own version: v0.0.N, one higher per release. GitHub Actions picks the number and publishes each release with the list of commits it contains; this file keeps the human-readable history. Downloads: https://github.com/FaradayMicrosystems/cyberNAV/releases
 
+## v0.0.19 (2026-11-16)
+
+- Your position on the map is now a CyberNav vehicle: a 3D phosphor-green wireframe with black faces that turns and tilts with the chase cam. The default is Meridian, the sedan.
+- New VEHICLE button on the driving screen. It picks from the ten vehicles of the CyberNav Vehicle Select design: Meridian (sedan), Talon (reverse trike), Rancher (pickup / ute), Courier (van), Strider (motorcycle), Shuttle (shuttlecraft), Prospector (six-wheel rover), Haulmaster (semi tractor), Lancet (sports car) and Metro (bus).
+- 3D markers are drawn with flat colours, without the white highlight, so the wireframe stays green.
+
 ## v0.0.18 (2026-11-16)
 
 - Fix: the driving screen's buttons now work. Taps lit up but never ran their action, because the screen redraws every half second and each redraw made the tap check fail. Route search, ADD STOP, ADD ENDPOINT, MENU, CENTER, DAY / NIGHT, STOCK UI, STOP and ◇ HUD now all open their screens.
