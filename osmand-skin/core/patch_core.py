@@ -41,7 +41,7 @@ PATCHES = [
      b"float l=max(dot(-param_fs_lightDirection,n),0.0)*0.025+abs(dot(n,v))*0.01;"
      b"vec3 face=vec3(0.008,0.02,0.012)+l*vec3(0.5,1.0,0.6)+v2f_pointColor.rgb*0.01;"
      b"float e=1.0;"
-     b"if(abs(n.y)<0.01){vec2 q=v2f_sizes.xy;vec2 w=max(fwidth(q)*1.5,vec2(1e-5));"
+     b"if(abs(n.y)<0.01){vec2 q=v2f_sizes.xy;vec2 w=max(fwidth(q)*3.0,vec2(1e-5));"
      b"vec2 m=min(q,1.0-q)/w;e=clamp(min(m.x,m.y)-0.5,0.0,1.0);}"
      b"vec3 color=mix(v2f_pointColor.rgb,face,e);"  # edges in the 3D buildings colour setting
      b"float alpha=param_fs_alpha*min(param_fs_fadeHeight/v2f_height,1.0);"

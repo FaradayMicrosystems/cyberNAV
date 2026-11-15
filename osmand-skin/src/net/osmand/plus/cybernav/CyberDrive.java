@@ -18,6 +18,7 @@ import net.osmand.Location;
 import net.osmand.binary.RouteDataObject;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.activities.MapActivity;
+import net.osmand.plus.dashboard.DashboardType;
 import net.osmand.plus.helpers.TargetPoint;
 import net.osmand.plus.routing.NextDirectionInfo;
 import net.osmand.plus.routing.RouteCalculationResult;
@@ -200,12 +201,13 @@ public final class CyberDrive {
 					Hit was = pressed;
 					pressed = null;
 					invalidate();
-					if (h != null && h == was) {
+					// hits are rebuilt on every redraw: match the button by its rectangle, not the object
+					if (h != null && was != null && h.r.equals(was.r)) {
 						performClick();
 						try {
 							h.run.run();
 						} catch (RuntimeException ex) {
-							// an OsmAnd screen that is not ready yet: ignore the tap
+							android.util.Log.w("cyberNAV", "HUD action failed", ex);
 						}
 					}
 					return true;
@@ -248,6 +250,15 @@ public final class CyberDrive {
 			pendingAt = System.currentTimeMillis();
 			act.getFragmentsHelper().showQuickSearch(mode == NONE
 					? ShowQuickSearchMode.DESTINATION_SELECTION : ShowQuickSearchMode.INTERMEDIATE_SELECTION, false);
+		}
+
+		/** The same as OsmAnd's own menu button: the dashboard, or the side drawer. */
+		private void openMenu() {
+			if (app.getSettings().SHOW_DASHBOARD_ON_MAP_SCREEN.get()) {
+				act.getDashboard().setDashboardVisibility(true, DashboardType.DASHBOARD);
+			} else {
+				act.openDrawer();
+			}
 		}
 
 		private void toggleDayNight() {
@@ -439,11 +450,14 @@ public final class CyberDrive {
 
 		private List<Object[]> buttons(State s) {
 			List<Object[]> b = new ArrayList<>();
-			b.add(new Object[] {"MENU", (Runnable) act::openDrawer});
+			b.add(new Object[] {"MENU", (Runnable) this::openMenu});
 			b.add(new Object[] {"CENTER", (Runnable) () -> app.getMapViewTrackingUtilities().backToLocationImpl()});
 			boolean night = app.getDaynightHelper().isNightMode(ThemeUsageContext.MAP);
 			b.add(new Object[] {night ? "DAY" : "NIGHT", (Runnable) this::toggleDayNight});
 			b.add(new Object[] {"STOCK UI", (Runnable) () -> setOn(false)});
+			if (s.routed && !s.following) {
+				b.add(new Object[] {"START", (Runnable) () -> act.getMapActions().startNavigation()});
+			}
 			if (s.following || s.routed) {
 				b.add(new Object[] {"STOP", (Runnable) () -> act.getMapActions().stopNavigationActionConfirm(null)});
 			}
