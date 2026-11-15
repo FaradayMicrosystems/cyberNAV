@@ -7,18 +7,18 @@ Usage: make_vehicles.py <OsmAnd-resources checkout>
 Writes models/cybernav_<id>/cybernav_<id>.obj + .mtl for each vehicle and registers them in
 bundled_assets.json, so the app copies them to its models/ folder (re-copied on every update).
 
-Each model is the vehicle's solid parts in near-black plus a square phosphor-green beam along
-every crease edge and detail line, so on the map it reads as a glowing hidden-line wireframe.
+Each model is the vehicle's solid parts in the route yellow plus a square black beam along every
+crease edge and detail line: a solid yellow vehicle with black wireframe detail, in every theme.
 Axes as OsmAnd's own models: x = width, y = up, z = forward. Scaled so the longest side is
 6 units (OsmAnd draws one unit as 6 dp at icon size 1, like its stock car arrow).
 """
 import json, math, os, sys
 
-PHOSPHOR = (0.722, 1.0, 0.478)   # #B8FF7A (the model shader uses colours as-is, no gamma)
-FACE = (0.012, 0.03, 0.016)       # near-black with a hint of green, like the building faces
+BODY = (1.0, 0.875, 0.239)        # #FFDF3D, the route yellow: solid body (the model shader uses colours as-is, no gamma)
+LINE = (0.0, 0.0, 0.0)            # black wireframe lines
 SIZE = 6.0                        # longest side, model units
 BEAM = 0.03                       # beam width as a fraction of SIZE (about 1.1 dp at icon size 1)
-VERSION = "17.11.2026"  # bump when the models change, so installed copies are replaced
+VERSION = "18.11.2026"  # bump when the models change, so installed copies are replaced
 
 # ---------------------------------------------------------------- shapes (as in the artifact)
 HF = [[0, 1, 2, 3], [5, 4, 7, 6], [4, 5, 1, 0], [3, 2, 6, 7], [4, 0, 3, 7], [1, 5, 6, 2]]
@@ -73,11 +73,28 @@ def shuttle():
         box(-.95, .95, .62, 1.72, -2.4, -2.0), nac, mirror(nac), pylon, mirror(pylon)], lines=lines)
 
 def haulmaster():
-    tank = box(-1.2, -.95, .55, .95, -.6, .2)
-    parts = [w for z in (2.15, -1.4, -2.5) for w in (wheel(-1.0, .5, z, .5, .42), wheel(1.0, .5, z, .5, .42))]
-    return dict(parts=parts + [box(-.5, .5, .55, .9, -3.0, 1.4), tank, mirror(tank), box(-.6, .6, .9, 1.05, -2.4, -1.3),
-        box(-1.15, 1.15, .6, 2.7, .2, 1.3), shape(1.3, 3.2, 1.2, .55, 1.3, 3.0, 1.15, 2.9)],
-        lines=[L([-1.25, .9, .15], [-1.25, 3.25, .15]), L([1.25, .9, .15], [1.25, 3.25, .15]), L([-1.2, 1.8, 3.08], [1.2, 1.8, 3.08], [0, 0, 1])])
+    """Electric prime mover after the Windrose R700: a teardrop cab with a raked, wraparound windscreen,
+    a short rounded nose with a full-width light bar, battery side fairings and a 6x4 chassis."""
+    nose = hexa([[-1.2, .55, 1.8], [1.2, .55, 1.8], [1.2, 1.75, 1.8], [-1.2, 1.75, 1.8],
+                 [-1.0, .6, 2.5], [1.0, .6, 2.5], [.95, 1.4, 2.5], [-.95, 1.4, 2.5]])
+    screen = hexa([[-1.2, .55, .55], [1.2, .55, .55], [1.12, 3.05, .55], [-1.12, 3.05, .55],
+                   [-1.2, .55, 1.8], [1.2, .55, 1.8], [1.2, 1.75, 1.8], [-1.2, 1.75, 1.8]])
+    roof = hexa([[-1.15, .6, -.65], [1.15, .6, -.65], [1.08, 2.9, -.65], [-1.08, 2.9, -.65],
+                 [-1.2, .55, .55], [1.2, .55, .55], [1.12, 3.05, .55], [-1.12, 3.05, .55]])
+    tail = hexa([[-1.05, 1.05, -1.25], [1.05, 1.05, -1.25], [.98, 2.55, -1.25], [-.98, 2.55, -1.25],
+                 [-1.15, .6, -.65], [1.15, .6, -.65], [1.08, 2.9, -.65], [-1.08, 2.9, -.65]])
+    skirt = box(-1.22, -1.08, .32, .95, -1.15, 1.2)
+    parts = [w for z in (1.85, -1.75, -2.8) for w in (wheel(-1.02, .5, z, .5, .4), wheel(1.02, .5, z, .5, .4))]
+    parts += [box(-.5, .5, .5, .85, -3.25, 1.8), nose, screen, roof, tail, skirt, mirror(skirt),
+              box(-.62, .62, .85, .98, -2.75, -1.55)]  # fifth wheel
+    lines = [L([-.95, 1.2, 2.51], [.95, 1.2, 2.51], [0, 0, 1]),          # full-width light bar
+             L([-1.18, 1.75, 1.79], [1.18, 1.75, 1.79], [0, .6, .8])]     # foot of the windscreen
+    for sd in (-1, 1):
+        lines += [L([sd * 1.21, 1.75, 1.75], [sd * 1.15, 2.85, .65], [sd, 0, 0]),   # windscreen pillar / side glass front
+                  L([sd * 1.21, 1.75, 1.75], [sd * 1.2, 1.75, .1], [sd, 0, 0]),     # waistline
+                  L([sd * 1.2, .7, .1], [sd * 1.2, 2.7, .1], [sd, 0, 0]),           # door shut line
+                  L([sd * 1.23, .6, -1.0], [sd * 1.23, .6, 1.05], [sd, 0, 0])]      # fairing seam
+    return dict(parts=parts, lines=lines)
 
 def metro():
     lines = []
@@ -158,7 +175,7 @@ def crease_edges(p):
 
 class Obj:
     def __init__(self):
-        self.v, self.vn, self.faces = [], [], {"cybernav_face": [], "cybernav_edge_profile_color": []}
+        self.v, self.vn, self.faces = [], [], {"cybernav_face": [], "cybernav_edge": []}
 
     def poly(self, mat, pts, n):
         base = len(self.v) + 1
@@ -197,20 +214,20 @@ class Obj:
         # HF assumes box order; recolour the faces just added as edges
         added = self.faces["cybernav_face"][-12:]
         del self.faces["cybernav_face"][-12:]
-        self.faces["cybernav_edge_profile_color"] += added
+        self.faces["cybernav_edge"] += added
 
     def write(self, path, name):
         with open(path + ".mtl", "w") as m:
             m.write("# cyberNAV vehicle marker\n")
-            m.write("newmtl cybernav_face\nKd %.3f %.3f %.3f\nd 1\n\n" % FACE)
-            m.write("newmtl cybernav_edge_profile_color\nKd %.3f %.3f %.3f\nd 1\n" % PHOSPHOR)
+            m.write("newmtl cybernav_face\nKd %.3f %.3f %.3f\nd 1\n\n" % BODY)
+            m.write("newmtl cybernav_edge\nKd %.3f %.3f %.3f\nd 1\n" % LINE)
         with open(path + ".obj", "w") as o:
             o.write("# cyberNAV vehicle marker: %s\nmtllib %s.mtl\no %s\n" % (name, os.path.basename(path), os.path.basename(path)))
             for p in self.v:
                 o.write("v %.4f %.4f %.4f\n" % tuple(p))
             for n in self.vn:
                 o.write("vn %.4f %.4f %.4f\n" % tuple(n))
-            for mat in ("cybernav_face", "cybernav_edge_profile_color"):
+            for mat in ("cybernav_face", "cybernav_edge"):
                 o.write("usemtl %s\n" % mat)
                 for f in self.faces[mat]:
                     o.write("f " + " ".join("%d//%d" % t for t in f) + "\n")

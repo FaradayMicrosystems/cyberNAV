@@ -7,16 +7,14 @@ import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.plugins.PluginsHelper;
 import net.osmand.plus.plugins.srtm.SRTMPlugin;
-import net.osmand.plus.settings.backend.ApplicationMode;
 import net.osmand.plus.settings.backend.OsmandSettings;
 import net.osmand.plus.settings.backend.preferences.CommonPreference;
 
 /**
  * The four phosphor themes of docs/concepts/CYBERNAV-HANDOFF.md: Green, Amber, Ice and White. One
- * theme colours the whole display: the driving HUD and CRT brackets, the vehicle under your position
- * (its edge material is "profile_color", so it takes the profile colour), the 3D building edges (the
+ * theme colours the whole display: the driving HUD and CRT brackets, the 3D building edges (the
  * custom 3D buildings colour) and the map's road lines (the style's hidden "cybernavTheme" property,
- * see recolor.py). The route stays yellow and alerts stay red in every theme.
+ * see recolor.py). The route and the vehicle stay yellow and alerts stay red in every theme.
  */
 public final class CyberTheme {
 	static final String[] IDS = {"green", "amber", "ice", "white"};
@@ -86,13 +84,6 @@ public final class CyberTheme {
 				} else {
 					pref.set(rgb);
 				}
-				changed = true;
-			}
-		}
-		for (ApplicationMode mode : new ApplicationMode[] {ApplicationMode.CAR, s.getApplicationMode()}) {
-			Integer was = mode.getCustomIconColor();
-			if (was == null || was != INK[i]) {
-				mode.setCustomIconColor(INK[i]);
 				changed = true;
 			}
 		}
