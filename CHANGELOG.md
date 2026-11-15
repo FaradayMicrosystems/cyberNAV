@@ -2,6 +2,15 @@
 
 Every change gets its own version: v0.0.N, one higher per release. GitHub Actions picks the number and publishes each release with the list of commits it contains; this file keeps the human-readable history. Downloads: https://github.com/FaradayMicrosystems/cyberNAV/releases
 
+## v0.0.15 (2026-11-15)
+
+Map screen modelled on the "Unit 01 · CyberNav · P1 green" concept screen.
+- Chase-cam view like the concept: the camera looks down at 45° from behind and above the vehicle (was 15° above the horizon in v0.0.14). Applied once on upgrade.
+- 3D wireframe buildings are drawn in the same phosphor green as the roads and HUD (#B8FF7A, were bright orange), still with opaque black faces, so the whole screen is one colour except the yellow route.
+- CRT look over the map screen: fine scanlines, a dark vignette at the edges and phosphor corner brackets. It never blocks touches.
+- HUD text in Share Tech Mono, the cyberNAV data font (SIL Open Font License).
+- Left column while driving: next turn and distance, then the speed limit and the clock (both now on by default for car profiles). Arrival time and distance stay along the bottom.
+
 ## v0.0.14 (2026-11-15)
 
 - Cold, minimal night map: the ground is pure black (#000). Land, water, parks and every other area are no longer drawn, and the 3D sky and distance fog, which OsmAnd's engine tinted navy blue, are black too.

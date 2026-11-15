@@ -42,10 +42,10 @@ edit "$S" '"enable_3d_map_objects", false\)' '"enable_3d_map_objects", true)'
 edit "$S" 'BUILDINGS_3D_DEFAULT_COLOR = 0x666666;' 'BUILDINGS_3D_DEFAULT_COLOR = 0x2F6B1F;'
 edit "$S" 'BUILDINGS_3D_ALPHA_DEF_VALUE = 0\.5f;' 'BUILDINGS_3D_ALPHA_DEF_VALUE = 1.0f;'
 
-echo "3a. Map faces the direction of travel (not compass): low chase-cam 3D view, zoomed in close while driving"
+echo "3a. Map faces the direction of travel (not compass): chase-cam 3D view 45° down like the Unit 01 concept, zoomed in close while driving"
 edit "$S" '"rotate_map", ROTATE_MAP_MANUAL\)' '"rotate_map", ROTATE_MAP_BEARING)'
-edit "$S" '"last_known_map_elevation", 90\)' '"last_known_map_elevation", 15)'
-edit "$S" '"last_known_aa_map_elevation", 90\)' '"last_known_aa_map_elevation", 15)'
+edit "$S" '"last_known_map_elevation", 90\)' '"last_known_map_elevation", 45)'
+edit "$S" '"last_known_aa_map_elevation", 90\)' '"last_known_aa_map_elevation", 45)'
 # Close auto-zoom in the car (zoom up to 19), so the view is a low drone just behind the vehicle
 edit "$S" 'AUTO_ZOOM_MAP_SCALE\.setModeDefaultValue\(ApplicationMode\.CAR, AutoZoomMap\.FAR\);' 'AUTO_ZOOM_MAP_SCALE.setModeDefaultValue(ApplicationMode.CAR, AutoZoomMap.CLOSE);'
 # A saved flat view (90) is never restored: the map always opens in 3D perspective
@@ -122,5 +122,19 @@ echo "10. Natural navigation voice: phone's text-to-speech at normal pitch and s
 J="$APP/src/net/osmand/plus/voice/JsTtsCommandPlayer.java"
 edit "$J" 'textToSpeech\[0\] = new TextToSpeech\(app, status -> \{' 'textToSpeech[0] = net.osmand.plus.cybernav.CyberVoice.create(app, status -> {'
 edit "$J" '(\n(\t+)if \(speechRate != 1\) \{\n\t+mTts\.setSpeechRate\(speechRate\);\n\t+\})' '\1\n\2net.osmand.plus.cybernav.CyberVoice.tune(mTts, locale, speechRate);'
+
+echo "11. Map screen like the Unit 01 concept: HUD font, CRT overlay, clock and speed limit in the left column"
+mkdir -p "$APP/assets/fonts"
+cp "$SKIN/assets/fonts/cybernav_mono.ttf" "$SKIN/assets/fonts/cybernav_mono.OFL.txt" "$APP/assets/fonts/"
+edit "$APP/src/net/osmand/plus/OsmandApplication.java" '(\n\t\tsuper\.onCreate\(\);\n)' '\1\t\tnet.osmand.plus.cybernav.CyberHud.init(this);\n'
+# OsmAnd builds its normal and medium fonts from the system font; build them from Share Tech Mono
+edit "$APP/src/net/osmand/plus/utils/FontCache.java" '(\t\tPair<Typeface, Integer> pair = Pair\.create\(original, weight\);)' '\t\tif (original == null) original = net.osmand.plus.cybernav.CyberHud.font(); // cyberNAV: HUD font\n\1'
+edit "$APP/src/net/osmand/plus/activities/MapActivity.java" '(\n\t\tnet\.osmand\.plus\.cybernav\.CyberUpdater\.check\(this\);)' '\1\n\t\tnet.osmand.plus.cybernav.CyberHud.attach(this);'
+# Clock and speed limit sit in the left column under the next turn, shown by default when driving
+W="$APP/src/net/osmand/plus/views/mapwidgets/WidgetType.java"
+edit "$W" '(\tMAX_SPEED\("max_speed",.*?), RIGHT\),' '\1, LEFT),'
+edit "$W" '(\tCURRENT_TIME\("plain_time",.*?), RIGHT\),' '\1, LEFT),'
+WA="$APP/src/net/osmand/plus/settings/backend/WidgetsAvailabilityHelper.java"
+edit "$WA" 'regWidgetVisibility\(MAX_SPEED, none\);' 'regWidgetVisibility(MAX_SPEED, CAR, TRUCK, MOTORCYCLE, MOPED); // cyberNAV\n\t\tregWidgetVisibility(CURRENT_TIME, CAR, TRUCK, MOTORCYCLE, MOPED); // cyberNAV'
 
 echo "Skin applied."
