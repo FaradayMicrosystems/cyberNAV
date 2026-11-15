@@ -2,6 +2,25 @@
 
 Every change gets its own version: v0.0.N, one higher per release. GitHub Actions picks the number and publishes each release with the list of commits it contains; this file keeps the human-readable history. Downloads: https://github.com/FaradayMicrosystems/cyberNAV/releases
 
+## v0.0.17 (2026-11-15)
+
+Custom Unit 01 driving screen. It replaces OsmAnd's own buttons and widgets on the map screen.
+- Sidebar (left in landscape, along the top in portrait), from top to bottom:
+  - the cyberNAV header with your destination (or STANDBY) and the GPS status;
+  - the route search bar where the clock was: tap it, type a place or address, then press Start;
+  - on a route, the bar shows the arrival time at your next stop and at the end of the route ("ETA NEXT / END");
+  - ADD STOP and ADD ENDPOINT, on a route only. ADD STOP puts the new stop between you and your next destination. ADD ENDPOINT adds it as the last point of the journey;
+  - the speed limit (turns red-orange when you are more than 5% over it), the street you are on, and the next street with the distance to it;
+  - a heading-up route minimap with the route ahead in yellow and the part already driven dimmed;
+  - MENU, CENTER, DAY / NIGHT, STOCK UI and, on a route, STOP buttons.
+- On the map:
+  - the next turn: an arrow, the distance and the street;
+  - a heading tape;
+  - ETA, distance left and speed;
+  - a status line: STANDBY, ROUTE READY, FOLLOW ROUTE, OFF ROUTE or RECALCULATING.
+- STOCK UI brings OsmAnd's own screen back. Tap ◇ HUD at the top to return.
+- Touches outside the panels still move the map.
+
 ## v0.0.16 (2026-11-15)
 
 - Building colour is now a setting: Configure map > 3D buildings > Colour. The first three colours in the palette are phosphor green (default), red-orange (#FF6B3D) and bright orange (#FF7300); any other colour works too.
