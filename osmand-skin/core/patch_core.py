@@ -15,7 +15,7 @@ same length or shorter (padded with spaces), so nothing else in the library move
    behind them, so it reads as hidden-line wireframe.
 3. Fallback building shader (used while the engine starts up): the same colours, much darker.
 4. 3D marker shader (the vehicle under your position): flat colours without the white
-   highlight, so the cyberNAV vehicle wireframe stays phosphor green on black.
+   highlight, so the cyberNAV vehicle keeps its exact yellow body and black lines.
 
 Every shader input and uniform stays in use, so the engine's variable lookups still succeed.
 

@@ -2,6 +2,11 @@
 
 Every change gets its own version: v0.0.N, one higher per release. GitHub Actions picks the number and publishes each release with the list of commits it contains; this file keeps the human-readable history. Downloads: https://github.com/FaradayMicrosystems/cyberNAV/releases
 
+## v0.0.22 (2026-11-16)
+
+- Every vehicle is now solid yellow (the route colour) with black wireframe lines, in every theme. Before, they were black with lines in the theme colour.
+- Haulmaster reshaped after the Windrose EV prime mover: a teardrop cab with a steeply raked wraparound windscreen, a short rounded nose with a full-width light bar, battery side fairings and a 6x4 chassis with a fifth wheel.
+
 ## v0.0.21 (2026-11-16)
 
 Fixes from a full check of the v0.0.20 driving screen:
