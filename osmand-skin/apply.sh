@@ -117,9 +117,10 @@ else
   echo "  skipped (no patched engine given): buildings stay solid"
 fi
 
-echo "9. Routing: a new stop is appended as the new final destination, never inserted mid-route"
+echo "9. Routing: a new stop is appended as the new final destination (ADD STOP: next stop)"
 T="$APP/src/net/osmand/plus/helpers/TargetPointsHelper.java"
-edit "$T" '(\n(\t+))(if \(intermediate < 0 \|\| intermediate > intermediatePoints\.size\(\)\) \{)' '\1// cyberNAV: new stops always go at the end of the run (old destination becomes the last stop)\1if (intermediate >= 0 && intermediate <= intermediatePoints.size() && getPointToNavigate() != null) intermediate = intermediatePoints.size() + 1;\1\3'
+# (ADD STOP on the driving screen is the one exception: it puts the stop first, before the next destination)
+edit "$T" '(\n(\t+))(if \(intermediate < 0 \|\| intermediate > intermediatePoints\.size\(\)\) \{)' '\1// cyberNAV: a new stop goes at the end of the run (old destination becomes the last stop)\1intermediate = net.osmand.plus.cybernav.CyberDrive.stopIndex(intermediate, intermediatePoints.size(), getPointToNavigate() != null);\1\3'
 
 echo "10. Natural navigation voice: phone's text-to-speech at normal pitch and speed, best installed voice"
 J="$APP/src/net/osmand/plus/voice/JsTtsCommandPlayer.java"
@@ -133,6 +134,8 @@ edit "$APP/src/net/osmand/plus/OsmandApplication.java" '(\n\t\tsuper\.onCreate\(
 # OsmAnd builds its normal and medium fonts from the system font; build them from Share Tech Mono
 edit "$APP/src/net/osmand/plus/utils/FontCache.java" '(\t\tPair<Typeface, Integer> pair = Pair\.create\(original, weight\);)' '\t\tif (original == null) original = net.osmand.plus.cybernav.CyberHud.font(); // cyberNAV: HUD font\n\1'
 edit "$APP/src/net/osmand/plus/activities/MapActivity.java" '(\n\t\tnet\.osmand\.plus\.cybernav\.CyberUpdater\.check\(this\);)' '\1\n\t\tnet.osmand.plus.cybernav.CyberHud.attach(this);'
+# The Unit 01 driving screen replaces OsmAnd's buttons and widgets (STOCK UI brings them back)
+edit "$APP/src/net/osmand/plus/activities/MapActivity.java" '(\n\t\tnet\.osmand\.plus\.cybernav\.CyberHud\.attach\(this\);)' '\1\n\t\tnet.osmand.plus.cybernav.CyberDrive.attach(this);'
 # Clock and speed limit sit in the left column under the next turn, shown by default when driving
 W="$APP/src/net/osmand/plus/views/mapwidgets/WidgetType.java"
 edit "$W" '(\tMAX_SPEED\("max_speed",.*?), RIGHT\),' '\1, LEFT),'
