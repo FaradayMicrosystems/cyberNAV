@@ -517,21 +517,58 @@ public final class CyberDrive {
 			}
 			y = speedBlock(c, s, x0, x1, y);
 
+			// buttons at the bottom of the sidebar: 2 per row, or 3 when 2 would run into the blocks
+			// above. On a short screen (a phone on its side) they go in a bar under the map instead.
 			List<Object[]> btns = buttons(s);
-			int rows = (btns.size() + 1) / 2;
 			float bh = 38 * dp, gap = 8 * dp;
-			float by = h - bottom - p - rows * bh - (rows - 1) * gap;
-			float half = (x1 - x0 - gap) / 2f;
-			for (int i = 0; i < btns.size(); i++) {
-				float bx = x0 + (i % 2) * (half + gap);
-				float yy = by + (i / 2) * (bh + gap);
-				button(c, new RectF(bx, yy, bx + half, yy + bh), (String) btns.get(i)[0], (Runnable) btns.get(i)[1]);
+			int cols = 2;
+			int rows = (btns.size() + cols - 1) / cols;
+			if (h - bottom - p - rows * bh - (rows - 1) * gap < y + 8 * dp) {
+				cols = 3;
+				bh = 34 * dp;
+				gap = 6 * dp;
+				rows = (btns.size() + cols - 1) / cols;
 			}
-			if (by - gap - y > 70 * dp) {
-				minimap(c, s, new RectF(x0, y, x1, by - gap));
+			float mapBottom = h - bottom - 14 * dp;
+			float by = h - bottom - p - rows * bh - (rows - 1) * gap;
+			if (by < y + 8 * dp) {
+				float mx0 = sw + 14 * dp, mx1 = w - right - 14 * dp;
+				cols = btns.size() <= 6 ? btns.size() : (btns.size() + 1) / 2;
+				rows = (btns.size() + cols - 1) / cols;
+				bh = 36 * dp;
+				gap = 6 * dp;
+				by = h - bottom - 10 * dp - rows * bh - (rows - 1) * gap;
+				RectF bar = new RectF(sw, by - 10 * dp, w, h);
+				panels.add(bar);
+				fill.setColor(Color.BLACK);
+				c.drawRect(bar, fill);
+				line.setColor(PHOSPHOR);
+				line.setAlpha(150);
+				line.setStrokeWidth(1.2f * dp);
+				c.drawLine(sw, bar.top, w, bar.top, line);
+				float bw = (mx1 - mx0 - gap * (cols - 1)) / cols;
+				for (int i = 0; i < btns.size(); i++) {
+					float bx = mx0 + (i % cols) * (bw + gap);
+					float yy = by + (i / cols) * (bh + gap);
+					button(c, new RectF(bx, yy, bx + bw, yy + bh), (String) btns.get(i)[0], (Runnable) btns.get(i)[1]);
+				}
+				mapBottom = bar.top - 12 * dp;
+				if (h - bottom - p - y > 70 * dp) {
+					minimap(c, s, new RectF(x0, y, x1, h - bottom - p));
+				}
+			} else {
+				float bw = (x1 - x0 - gap * (cols - 1)) / cols;
+				for (int i = 0; i < btns.size(); i++) {
+					float bx = x0 + (i % cols) * (bw + gap);
+					float yy = by + (i / cols) * (bh + gap);
+					button(c, new RectF(bx, yy, bx + bw, yy + bh), (String) btns.get(i)[0], (Runnable) btns.get(i)[1]);
+				}
+				if (by - gap - y > 70 * dp) {
+					minimap(c, s, new RectF(x0, y, x1, by - gap));
+				}
 			}
 
-			mapOverlay(c, s, sw + 14 * dp, top + 14 * dp, w - right - 14 * dp, h - bottom - 14 * dp);
+			mapOverlay(c, s, sw + 14 * dp, top + 14 * dp, w - right - 14 * dp, mapBottom);
 		}
 
 		private void drawPortrait(Canvas c, State s, int w, int h, float top, float bottom, float left, float right) {
@@ -557,9 +594,12 @@ public final class CyberDrive {
 			speedBlock(c, s, x0, split - 8 * dp, y);
 			minimap(c, s, new RectF(split, y, x1, y + 88 * dp));
 
+			// button bar: one row of up to 5, otherwise two rows, so every label stays readable
 			List<Object[]> btns = buttons(s);
 			float bh = 40 * dp, gap = 6 * dp;
-			float by = h - bottom - p - bh;
+			int cols = btns.size() <= 5 ? btns.size() : (btns.size() + 1) / 2;
+			int rows = (btns.size() + cols - 1) / cols;
+			float by = h - bottom - p - rows * bh - (rows - 1) * gap;
 			RectF bar = new RectF(0, by - p, w, h);
 			panels.add(bar);
 			fill.setColor(Color.BLACK);
@@ -568,10 +608,11 @@ public final class CyberDrive {
 			line.setAlpha(150);
 			line.setStrokeWidth(1.2f * dp);
 			c.drawLine(0, bar.top, w, bar.top, line);
-			float bw = (x1 - x0 - gap * (btns.size() - 1)) / btns.size();
+			float bw = (x1 - x0 - gap * (cols - 1)) / cols;
 			for (int i = 0; i < btns.size(); i++) {
-				float bx = x0 + i * (bw + gap);
-				button(c, new RectF(bx, by, bx + bw, by + bh), (String) btns.get(i)[0], (Runnable) btns.get(i)[1]);
+				float bx = x0 + (i % cols) * (bw + gap);
+				float yy = by + (i / cols) * (bh + gap);
+				button(c, new RectF(bx, yy, bx + bw, yy + bh), (String) btns.get(i)[0], (Runnable) btns.get(i)[1]);
 			}
 
 			mapOverlay(c, s, x0, ph + 12 * dp, x1, bar.top - 12 * dp);
@@ -584,7 +625,7 @@ public final class CyberDrive {
 			boolean night = app.getDaynightHelper().isNightMode(ThemeUsageContext.MAP);
 			b.add(new Object[] {night ? "DAY" : "NIGHT", (Runnable) this::toggleDayNight});
 			b.add(new Object[] {"VEHICLE", (Runnable) this::pickVehicle});
-			b.add(new Object[] {"THEME · " + CyberTheme.name(act), (Runnable) this::nextTheme});
+			b.add(new Object[] {"THEME", (Runnable) this::nextTheme});
 			b.add(new Object[] {"STOCK UI", (Runnable) () -> setOn(false)});
 			if (s.routed && !s.following) {
 				b.add(new Object[] {"START", (Runnable) () -> act.getMapActions().startNavigation()});
@@ -798,10 +839,11 @@ public final class CyberDrive {
 		private void mapOverlay(Canvas c, State s, float l, float t, float r, float b) {
 			// route alert, top left: transparent with outlined text so it reads over the wireframe
 			boolean blink = (s.now / 500) % 2 == 0;
-			float aw = Math.min(r - l, 260 * dp);
+			float tw = Math.min(220 * dp, (r - l) * 0.45f); // heading tape width, top right
+			float aw = Math.min(r - l - tw - 10 * dp, 260 * dp); // the alert stays clear of the tape
 			if (s.rerouting()) {
 				if (blink) {
-					txt(c, "ROUTE OBSTRUCTED", l, t + 24 * dp, 22, ALERT, aw, true);
+					fit(c, "ROUTE OBSTRUCTED", l, t + 24 * dp, 22, ALERT, aw);
 				}
 				txt(c, s.deviated ? "OFF ROUTE · FINDING A NEW WAY" : "ROUTE CHANGED", l, t + 44 * dp, 11, ALERT, aw, true);
 				float sx = l + 9 * dp, sy = t + 64 * dp;
@@ -813,7 +855,7 @@ public final class CyberDrive {
 				txt(c, "RECALCULATING", l + 24 * dp, sy + 5 * dp, 12, ALERT, aw - 24 * dp, true);
 			} else if (s.arriving()) {
 				if (blink) {
-					txt(c, "ARRIVING", l, t + 34 * dp, 32, PHOSPHOR, aw, true);
+					fit(c, "ARRIVING", l, t + 34 * dp, 32, PHOSPHOR, aw);
 				}
 				String what = s.arrivingAtStop() ? "STOP" : "DESTINATION";
 				String dist = OsmAndFormatter.getFormattedDistance(s.arrivalDistance(), app).toUpperCase(Locale.ROOT);
@@ -825,13 +867,12 @@ public final class CyberDrive {
 				drawArrow(c, s.next.directionInfo.getTurnType(), l + 26 * dp, t + 48 * dp, 22 * dp);
 				String dist = OsmAndFormatter.getFormattedDistance(s.next.distanceTo, app).toUpperCase(Locale.ROOT);
 				float tx = l + 62 * dp, tw2 = aw - 62 * dp;
-				txt(c, dist, tx, t + 50 * dp, 28, PHOSPHOR, tw2, true);
+				fit(c, dist, tx, t + 50 * dp, 28, PHOSPHOR, tw2);
 				String ns = s.nextStreet();
 				txt(c, turnWord(s.next) + (ns != null ? " ▸ " + ns : ""), l, t + 86 * dp, 12, PHOSPHOR, aw, true);
 			}
 
 			// heading tape, top right
-			float tw = Math.min(220 * dp, (r - l) * 0.45f);
 			RectF tape = new RectF(r - tw, t, r, t + 40 * dp);
 			fill.setColor(Color.BLACK);
 			fill.setAlpha(170);
@@ -1027,6 +1068,14 @@ public final class CyberDrive {
 			txt(c, label, r.centerX(), r.centerY() + 5 * dp, 13, down ? Color.BLACK : PHOSPHOR, r.width() - 10 * dp, !down);
 			text.setTextAlign(Paint.Align.LEFT);
 			hits.add(new Hit(r, run));
+		}
+
+		/** Draws a big HUD word, shrunk (down to 60%) rather than cut when it is wider than maxW. */
+		private void fit(Canvas c, String s, float x, float y, float size, int color, float maxW) {
+			text.setTextSize(size * dp);
+			float wd = text.measureText(s);
+			float k = wd > maxW && wd > 0 ? Math.max(0.6f, maxW / wd) : 1f;
+			txt(c, s, x, y, size * k, color, maxW, true);
 		}
 
 		/** Draws one line of HUD text, cut to fit maxW. Size in dp; glow adds the black outline. */

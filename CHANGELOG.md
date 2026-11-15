@@ -2,6 +2,14 @@
 
 Every change gets its own version: v0.0.N, one higher per release. GitHub Actions picks the number and publishes each release with the list of commits it contains; this file keeps the human-readable history. Downloads: https://github.com/FaradayMicrosystems/cyberNAV/releases
 
+## v0.0.21 (2026-11-16)
+
+Fixes from a full check of the v0.0.20 driving screen:
+- Phone held upright: the buttons now sit in two rows when there are more than five, so every label is readable. With eight buttons in one row each was about 40 dp wide and the labels were cut off.
+- Phone on its side: the buttons no longer cover the speed limit and street. When the sidebar is too short for them, they move to a bar under the map; the minimap gets the space back in the sidebar.
+- The THEME button is just "THEME" (the theme name made it too long to read).
+- Alerts and the next-turn distance shrink to fit instead of being cut off, and no longer run under the heading tape on narrow screens.
+
 ## v0.0.20 (2026-11-16)
 
 - Fix: navigation from the driving screen works. Picking a destination in the route search bar only stored it: OsmAnd calculates a route, opens the route card with Start and sets up voice prompts only in route planning mode, which the stock Navigation button enters first and the driving screen never did (broken since v0.0.17). The search bar now enters route planning mode first, so a picked destination gets a route, the route card, START and turn-by-turn voice.
