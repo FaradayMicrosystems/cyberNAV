@@ -117,6 +117,11 @@ else
   echo "  skipped (no patched engine given): buildings stay solid"
 fi
 
+echo "8b. Vehicle markers: the ten CyberNav vehicles as 3D models, the Meridian sedan by default"
+python3 "$SKIN/vehicles/make_vehicles.py" "$RES"
+edit "$S" 'NAVIGATION_ICON\.setModeDefaultValue\(ApplicationMode\.CAR, LocationIcon\.MOVEMENT_DEFAULT\.name\(\)\);' 'NAVIGATION_ICON.setModeDefaultValue(ApplicationMode.CAR, "model_cybernav_meridian");'
+edit "$S" 'LOCATION_ICON\.setModeDefaultValue\(ApplicationMode\.CAR, LocationIcon\.STATIC_CAR\.name\(\)\);' 'LOCATION_ICON.setModeDefaultValue(ApplicationMode.CAR, "model_cybernav_meridian");'
+
 echo "9. Routing: a new stop is appended as the new final destination (ADD STOP: next stop)"
 T="$APP/src/net/osmand/plus/helpers/TargetPointsHelper.java"
 # (ADD STOP on the driving screen is the one exception: it puts the stop first, before the next destination)
