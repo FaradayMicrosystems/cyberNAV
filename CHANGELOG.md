@@ -2,6 +2,16 @@
 
 Every change gets its own version: v0.0.N, one higher per release. GitHub Actions picks the number and publishes each release with the list of commits it contains; this file keeps the human-readable history. Downloads: https://github.com/FaradayMicrosystems/cyberNAV/releases
 
+## v0.0.14 (2026-11-15)
+
+- Cold, minimal night map: the ground is pure black (#000). Land, water, parks and every other area are no longer drawn, and the 3D sky and distance fog, which OsmAnd's engine tinted navy blue, are black too.
+- Main roads (motorways, trunk, primary, secondary, tertiary) are thin lines in the cyberNAV phosphor green (#B8FF7A); side streets (residential, service, tracks and similar) are the same green, softer (#668E44). Footpaths, cycleways, railways, rivers and borders are hidden.
+- The active route is a yellow line (#FFDF3D) with green turn arrows.
+- No street names, place names, POI icons or other labels on the night map. Bookmarks, the route and your position still show.
+- 3D buildings unchanged: bright orange wireframe with black faces.
+- Low chase-cam view: the map tilts to 15° above the horizon (OsmAnd's lowest is 10°) and auto-zoom while driving is set to Close, so the view sits just above and behind the vehicle looking ahead. The map still turns with the direction of travel, not the compass.
+- Night by default, on the phone and in Android Auto (was Auto, which showed the light map by day). The DAY / NIGHT button still switches to the light map. Applied once on upgrade.
+
 ## v0.0.13 (2026-11-14)
 
 - Smooth motion while driving: the map now glides continuously with the vehicle instead of moving in chunks. Each glide between GPS fixes lasts a little longer than the usual gap, so the map no longer stops and lurches when a fix arrives late.

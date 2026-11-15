@@ -8,6 +8,10 @@ Usage:
 Night map: each colour keeps its brightness and takes phosphor green: dark ground, dim areas, bright
 roads, labels and route. Day (light) map: the same monochrome look as dark ink on pale phosphor
 paper, for reading in sunlight. Strong reds stay red so warnings still read as warnings.
+
+Then the night map is stripped down to a cold, minimal display (minimal_night): pure black ground,
+phosphor-green main roads, softer green side streets, a yellow route, and nothing else (no areas,
+water, labels, icons, rails or paths). Buildings keep their rules, so 3D buildings still draw.
 """
 import re, sys, colorsys
 
@@ -141,9 +145,75 @@ def render(path):
         root.set(k, recolor_day(root.get(k)[1:]))
     for c in list(root):
         walk(c, None)
+    minimal_night(root)
     root.set("cybernav", "phosphor-hud")
     tree.write(path, encoding="utf-8", xml_declaration=True)
     print("  render colours:", ", ".join(f"{k} {v}" for k, v in stats.items()))
+
+# Night map, minimal: what stays visible at night, and in which colour.
+NIGHT_GROUND = "#000000"   # pure black land, water and sky
+MAIN_ROAD = "#B8FF7A"      # phosphor (HUD token "phosphor"), as in the cyberNAV UI
+SIDE_ROAD = "#668E44"      # the same green, softer (HUD token "ink-muted": phosphor at ~55% over black)
+ROUTE = "#FFDF3D"          # active route: yellow
+KEEP_POLYGONS = {"building", "building:part"}  # buildings keep drawing (3D wireframe)
+# highway value -> (colour, min zoom, widths by zoom band)
+MAIN_W = [(9, "1"), (12, "1.5"), (14, "2:2"), (16, "3:3"), (18, "4.5:4.5"), (None, "6:6")]
+SIDE_W = [(14, "1:1"), (16, "1.5:1.5"), (18, "2.5:2.5"), (None, "3.5:3.5")]
+NIGHT_ROADS = {
+    **{v: (MAIN_ROAD, 5, MAIN_W) for v in ("motorway", "motorway_link", "trunk", "trunk_link")},
+    **{v: (MAIN_ROAD, 8, MAIN_W) for v in ("primary", "primary_link")},
+    **{v: (MAIN_ROAD, 10, MAIN_W) for v in ("secondary", "secondary_link")},
+    **{v: (MAIN_ROAD, 12, MAIN_W) for v in ("tertiary", "tertiary_link")},
+    **{v: (SIDE_ROAD, 13, SIDE_W) for v in ("residential", "unclassified", "living_street", "road")},
+    **{v: (SIDE_ROAD, 15, SIDE_W) for v in ("service", "pedestrian", "track", "busway")},
+}
+
+def top_rules(section):
+    """(parent, rule) for every rule the style parsers register by tag/value: top-level cases,
+    and the cases inside top-level switches that have no tag/value of their own."""
+    out = []
+    def walk(parent):
+        for c in list(parent):
+            if not isinstance(c.tag, str) or c.tag not in CASES: continue
+            if c.get("tag") is not None and c.get("value") is not None: out.append((parent, c))
+            else: walk(c)
+    walk(section)
+    return out
+
+def night_off(section, keep=lambda rule: False):
+    """Every rule in the section stops matching at night (no match = nothing drawn)."""
+    n = 0
+    for parent, rule in top_rules(section):
+        if keep(rule): continue
+        if rule.get("nightMode") == "true": parent.remove(rule)
+        else: rule.set("nightMode", "false")
+        n += 1
+    return n
+
+def minimal_night(root):
+    import xml.etree.ElementTree as ET
+    stats = {}
+    for a in root.iter("renderingAttribute"):
+        if a.get("name") == "defaultColor":  # map ground at night: pure black
+            for c in a.iter():
+                if c.get("nightMode") == "true" and c.get("attrColorValue"): c.set("attrColorValue", NIGHT_GROUND)
+        elif a.get("name") == "route":  # active route at night: yellow line, green turn arrows
+            for c in a.iter():
+                if c.get("nightMode") == "true":
+                    c.set("color", ROUTE); c.set("color_0", "#00000000"); c.set("color_2", "#806F1F"); c.set("color_3", MAIN_ROAD)
+    stats["labels"] = night_off(root.find("text"))
+    stats["icons"] = night_off(root.find("point"))
+    stats["areas"] = night_off(root.find("polygon"), keep=lambda r: r.get("tag") in KEEP_POLYGONS)
+    line = root.find("line")
+    stats["lines"] = night_off(line)
+    for i, (value, (colour, minzoom, widths)) in enumerate(NIGHT_ROADS.items()):
+        rule = ET.Element("case", {"tag": "highway", "value": value, "nightMode": "true", "minzoom": str(minzoom),
+                                   "color": colour, "cap": "ROUND", "strokeWidth": widths[-1][1]})
+        for maxzoom, w in widths[:-1]:
+            ET.SubElement(rule, "case", {"maxzoom": str(maxzoom), "strokeWidth": w})
+        line.insert(i, rule)
+    stats["night roads"] = len(NIGHT_ROADS)
+    print("  minimal night map:", ", ".join(f"{k} {v}" for k, v in stats.items()))
 
 # App theme: only dark-theme and accent colours are touched; the light theme stays OsmAnd's.
 ACCENTS = {"active_color_primary_dark", "active_color_primary_dark_v2", "app_bar_active_dark",
