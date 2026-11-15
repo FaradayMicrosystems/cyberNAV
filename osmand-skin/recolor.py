@@ -155,6 +155,10 @@ NIGHT_GROUND = "#000000"   # pure black land, water and sky
 MAIN_ROAD = "#B8FF7A"      # phosphor (HUD token "phosphor"), as in the cyberNAV UI
 SIDE_ROAD = "#668E44"      # the same green, softer (HUD token "ink-muted": phosphor at ~55% over black)
 ROUTE = "#FFDF3D"          # active route: yellow
+# Phosphor themes (docs/concepts/CYBERNAV-HANDOFF.md): name -> (main road / HUD ink, side road = ink at ~55%).
+# Green is the style's own colours; the others are applied by the hidden "cybernavTheme" property,
+# which the app's THEME button sets (CyberTheme.java). The route stays yellow in every theme.
+THEMES = {"amber": ("#FFB000", "#8D6100"), "ice": ("#9FE8FF", "#58808D"), "white": ("#E6EEF5", "#7F8488")}
 KEEP_POLYGONS = {"building", "building:part"}  # buildings keep drawing (3D wireframe)
 # highway value -> (colour, min zoom, widths by zoom band)
 MAIN_W = [(9, "1"), (12, "1.5"), (14, "2:2"), (16, "3:3"), (18, "4.5:4.5"), (None, "6:6")]
@@ -201,6 +205,11 @@ def minimal_night(root):
             for c in a.iter():
                 if c.get("nightMode") == "true":
                     c.set("color", ROUTE); c.set("color_0", "#00000000"); c.set("color_2", "#806F1F"); c.set("color_3", MAIN_ROAD)
+                    parent = next(p for p in a.iter() if c in list(p))
+                    at = list(parent).index(c) + 1
+                    for i, (name, (ink, _)) in enumerate(THEMES.items()):  # turn arrows follow the theme
+                        parent.insert(at + i, ET.Element("apply_if", {"nightMode": "true", "cybernavTheme": name, "color_3": ink}))
+                    break
     for a in root.iter("renderingAttribute"):  # 3D buildings colour "map style": the wireframe green
         if a.get("name") == "base3DBuildingsColor":
             for c in a.iter():
@@ -215,8 +224,15 @@ def minimal_night(root):
                                    "color": colour, "cap": "ROUND", "strokeWidth": widths[-1][1]})
         for maxzoom, w in widths[:-1]:
             ET.SubElement(rule, "case", {"maxzoom": str(maxzoom), "strokeWidth": w})
+        for name, (main, side) in THEMES.items():  # apply_if runs after the width cases above
+            ET.SubElement(rule, "apply_if", {"cybernavTheme": name, "color": main if colour == MAIN_ROAD else side})
         line.insert(i, rule)
     stats["night roads"] = len(NIGHT_ROADS)
+    props = [i for i, c in enumerate(root) if c.tag == "renderingProperty"]
+    root.insert(props[-1] + 1 if props else 0, ET.Element("renderingProperty", {
+        "attr": "cybernavTheme", "name": "cyberNAV theme", "description": "Phosphor colour of the map lines",
+        "type": "string", "possibleValues": "green," + ",".join(THEMES)}))
+    stats["themes"] = 1 + len(THEMES)
     print("  minimal night map:", ", ".join(f"{k} {v}" for k, v in stats.items()))
 
 # App theme: only dark-theme and accent colours are touched; the light theme stays OsmAnd's.

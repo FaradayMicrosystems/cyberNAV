@@ -5,6 +5,7 @@ import android.content.SharedPreferences;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.DashPathEffect;
 import android.graphics.Path;
 import android.graphics.RectF;
 import android.graphics.Typeface;
@@ -41,15 +42,16 @@ import java.util.Locale;
  * OsmAnd's own buttons and widgets (the map_hud_container is hidden while it is on) with:
  * a sidebar (left in landscape, top in portrait) holding the cyberNAV header, a route search bar
  * (on a route: "next stop ETA / route ETA" plus ADD STOP and ADD ENDPOINT), the speed limit and
- * street, a heading-up route minimap and the MENU / CENTER / DAY-NIGHT / STOCK UI / STOP buttons;
- * and on the map: next manoeuvre, heading tape, ETA-distance-speed readout and a status line.
+ * street, a heading-up route minimap and the MENU / CENTER / DAY-NIGHT / THEME / STOCK UI / STOP buttons;
+ * and on the map: next manoeuvre (or an arriving / rerouting alert), heading tape, ETA-distance readout and a status line.
  * Touches outside the panels go through to the map. STOCK UI brings OsmAnd's own screen back.
  */
 public final class CyberDrive {
-	private static final int PHOSPHOR = 0xFFB8FF7A;
-	private static final int DIM = 0xFF668E44;
+	// HUD ink and its dim tone come from the phosphor theme (CyberTheme), refreshed every frame
+	private static int PHOSPHOR = 0xFFB8FF7A;
+	private static int DIM = 0xFF668E44;
 	private static final int ROUTE = 0xFFFFDF3D;
-	private static final int ALERT = 0xFFFF6B3D;
+	private static final int ALERT = 0xFFFF5A44; // Phosphor HUD --signal-alert
 	private static final String TAG = "cybernav_drive";
 	private static final String PREFS = "cybernav";
 	private static final String KEY_ON = "drive_hud";
@@ -79,6 +81,11 @@ public final class CyberDrive {
 		ViewGroup parent = (ViewGroup) stock.getParent();
 		if (parent.findViewWithTag(TAG) != null) {
 			return;
+		}
+		try {
+			CyberTheme.apply(activity);
+		} catch (RuntimeException e) {
+			android.util.Log.w("cyberNAV", "theme not applied", e);
 		}
 		DriveView view = new DriveView(activity, stock);
 		view.setTag(TAG);
@@ -133,6 +140,9 @@ public final class CyberDrive {
 		private Hit pressed;
 		private float bearing;
 		private boolean on;
+		private RouteCalculationResult lastRoute;
+		private List<Location> oldRoute;
+		private long oldRouteUntil;
 		private final Runnable tick = new Runnable() {
 			@Override
 			public void run() {
@@ -255,6 +265,13 @@ public final class CyberDrive {
 		private void search(int mode) {
 			pending = mode;
 			pendingAt = System.currentTimeMillis();
+			RoutingHelper rh = app.getRoutingHelper();
+			if (!rh.isFollowingMode() && !rh.isRoutePlanningMode()) {
+				// What OsmAnd's own Navigation button does first. Without route planning mode a picked
+				// destination is only stored: no route is calculated, the route card with Start never
+				// opens and the voice prompts are not set up (the v0.0.17 to v0.0.19 navigation bug).
+				act.getMapActions().enterRoutePlanningModeGivenGpx(null, null, null, true, false);
+			}
 			act.getFragmentsHelper().showQuickSearch(mode == NONE
 					? ShowQuickSearchMode.DESTINATION_SELECTION : ShowQuickSearchMode.INTERMEDIATE_SELECTION, false);
 		}
@@ -292,6 +309,50 @@ public final class CyberDrive {
 					.show();
 		}
 
+		/** Back to your position, following it again (OsmAnd's my-location button). */
+		private void recenter() {
+			if (android.os.Build.VERSION.SDK_INT >= 23 && act.checkSelfPermission(
+					android.Manifest.permission.ACCESS_FINE_LOCATION) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+				act.requestPermissions(new String[] {android.Manifest.permission.ACCESS_FINE_LOCATION,
+						android.Manifest.permission.ACCESS_COARSE_LOCATION}, 101); // OsmAndLocationProvider.REQUEST_LOCATION_PERMISSION
+				return;
+			}
+			app.getMapViewTrackingUtilities().backToLocationImpl();
+		}
+
+		/** Round re-centre button on the map, bottom left: a ring with a crosshair, filled while following. */
+		private void recenterRing(Canvas c, float l, float b) {
+			float rad = 26 * dp, cx = l + rad + 4 * dp, cy = b - rad - 26 * dp;
+			RectF r = new RectF(cx - rad, cy - rad, cx + rad, cy + rad);
+			boolean linked = app.getMapViewTrackingUtilities().isMapLinkedToLocation();
+			boolean down = pressed != null && pressed.r.equals(r);
+			fill.setStyle(Paint.Style.FILL);
+			fill.setColor(down ? PHOSPHOR : Color.argb(200, 0, 0, 0));
+			c.drawCircle(cx, cy, rad, fill);
+			int ink = down ? Color.BLACK : linked ? DIM : PHOSPHOR;
+			line.setColor(ink);
+			line.setStrokeWidth(2 * dp);
+			c.drawCircle(cx, cy, rad - 1 * dp, line);
+			c.drawCircle(cx, cy, rad * 0.42f, line);
+			for (int i = 0; i < 4; i++) {
+				double a = Math.PI / 2 * i;
+				float dx = (float) Math.cos(a), dy = (float) Math.sin(a);
+				c.drawLine(cx + dx * rad * 0.42f, cy + dy * rad * 0.42f, cx + dx * rad * 0.78f, cy + dy * rad * 0.78f, line);
+			}
+			if (linked) {
+				fill.setColor(ink);
+				c.drawCircle(cx, cy, 3 * dp, fill);
+			}
+			panels.add(r);
+			hits.add(new Hit(r, this::recenter));
+		}
+
+		private void nextTheme() {
+			CyberTheme.next(act);
+			CyberHud.refresh(act);
+			invalidate();
+		}
+
 		private void toggleDayNight() {
 			OsmandSettings s = app.getSettings();
 			boolean night = app.getDaynightHelper().isNightMode(ThemeUsageContext.MAP);
@@ -302,6 +363,8 @@ public final class CyberDrive {
 
 		@Override
 		protected void onDraw(Canvas c) {
+			PHOSPHOR = CyberTheme.ink(act);
+			DIM = CyberTheme.dim(act);
 			hits.clear();
 			panels.clear();
 			int w = getWidth(), h = getHeight();
@@ -343,6 +406,41 @@ public final class CyberDrive {
 				if (loc != null && loc.hasBearing() && loc.getSpeed() > 1f) {
 					bearing = loc.getBearing();
 				}
+			}
+
+			/** Metres to the next stop or the destination, or -1 when not driving a route. */
+			int arrivalDistance() {
+				if (!following || !routed || deviated) {
+					return -1;
+				}
+				boolean stop = !app.getTargetPointsHelper().getIntermediatePoints().isEmpty();
+				int d = stop ? rh.getLeftDistanceNextIntermediate() : rh.getLeftDistance();
+				return d > 0 ? d : -1;
+			}
+
+			boolean arrivingAtStop() {
+				return !app.getTargetPointsHelper().getIntermediatePoints().isEmpty();
+			}
+
+			boolean arriving() {
+				int d = arrivalDistance();
+				return d >= 0 && d < 250;
+			}
+
+			boolean rerouting() {
+				return following && (deviated || calculating);
+			}
+
+			/** Which side of the road the next stop or destination is on: RIGHT, LEFT or AHEAD. */
+			String arrivalSide() {
+				TargetPoint p = arrivingAtStop() ? app.getTargetPointsHelper().getFirstIntermediatePoint() : target;
+				if (p == null || loc == null) {
+					return "AHEAD";
+				}
+				double kx = Math.cos(Math.toRadians(loc.getLatitude()));
+				double brg = Math.toDegrees(Math.atan2((p.getLongitude() - loc.getLongitude()) * kx, p.getLatitude() - loc.getLatitude()));
+				double rel = ((brg - bearing) % 360 + 540) % 360 - 180;
+				return rel > 15 ? "RIGHT" : rel < -15 ? "LEFT" : "AHEAD";
 			}
 
 			String destination() {
@@ -482,10 +580,11 @@ public final class CyberDrive {
 		private List<Object[]> buttons(State s) {
 			List<Object[]> b = new ArrayList<>();
 			b.add(new Object[] {"MENU", (Runnable) this::openMenu});
-			b.add(new Object[] {"CENTER", (Runnable) () -> app.getMapViewTrackingUtilities().backToLocationImpl()});
+			b.add(new Object[] {"CENTER", (Runnable) this::recenter});
 			boolean night = app.getDaynightHelper().isNightMode(ThemeUsageContext.MAP);
 			b.add(new Object[] {night ? "DAY" : "NIGHT", (Runnable) this::toggleDayNight});
 			b.add(new Object[] {"VEHICLE", (Runnable) this::pickVehicle});
+			b.add(new Object[] {"THEME · " + CyberTheme.name(act), (Runnable) this::nextTheme});
 			b.add(new Object[] {"STOCK UI", (Runnable) () -> setOn(false)});
 			if (s.routed && !s.following) {
 				b.add(new Object[] {"START", (Runnable) () -> act.getMapActions().startNavigation()});
@@ -619,22 +718,27 @@ public final class CyberDrive {
 				double scale = ring / range;
 				double b = Math.toRadians(bearing), cos = Math.cos(b), sin = Math.sin(b);
 				int step = Math.max(1, pts.size() / 900);
-				for (int pass = 0; pass < 2; pass++) {
-					path.reset();
-					int from = pass == 0 ? 0 : cur, to = pass == 0 ? cur + 1 : pts.size();
-					boolean first = true;
-					for (int i = from; i < to; i = (i + step < to || i == to - 1) ? i + step : to - 1) {
-						Location l = pts.get(i);
-						double x = (l.getLongitude() - lon0) * kx, yy = (l.getLatitude() - lat0) * ky;
-						float sx = (float) (cx + (x * cos - yy * sin) * scale);
-						float sy = (float) (cy - (x * sin + yy * cos) * scale);
-						if (first) {
-							path.moveTo(sx, sy);
-							first = false;
-						} else {
-							path.lineTo(sx, sy);
-						}
+				if (route != lastRoute) {
+					// a new route while driving: keep the one it replaced, dashed, for a while
+					if (lastRoute != null && s.following && lastRoute.getImmutableAllLocations() != null
+							&& lastRoute.getImmutableAllLocations().size() > 1) {
+						oldRoute = lastRoute.getImmutableAllLocations();
+						oldRouteUntil = s.now + 90_000L;
 					}
+					lastRoute = route;
+				}
+				if (oldRoute != null && s.now < oldRouteUntil) {
+					trace(oldRoute, 0, oldRoute.size(), Math.max(1, oldRoute.size() / 900), lat0, lon0, kx, ky, cos, sin, scale, cx, cy);
+					line.setColor(DIM);
+					line.setAlpha(170);
+					line.setStrokeWidth(1.4f * dp);
+					line.setPathEffect(new DashPathEffect(new float[] {4 * dp, 4 * dp}, 0));
+					c.drawPath(path, line);
+					line.setPathEffect(null);
+				}
+				for (int pass = 0; pass < 2; pass++) {
+					int from = pass == 0 ? 0 : cur, to = pass == 0 ? cur + 1 : pts.size();
+					trace(pts, from, to, step, lat0, lon0, kx, ky, cos, sin, scale, cx, cy);
 					line.setColor(pass == 0 ? DIM : ROUTE);
 					line.setAlpha(pass == 0 ? 110 : 255);
 					line.setStrokeWidth((pass == 0 ? 1.5f : 2.4f) * dp);
@@ -643,8 +747,14 @@ public final class CyberDrive {
 				Location end = pts.get(pts.size() - 1);
 				double ex = (end.getLongitude() - lon0) * kx, ey = (end.getLatitude() - lat0) * ky;
 				float dx = (float) (cx + (ex * cos - ey * sin) * scale), dy = (float) (cy - (ex * sin + ey * cos) * scale);
+				line.setColor(ROUTE);
+				line.setAlpha(255);
+				line.setStrokeWidth(1.8f * dp);
+				if ((s.now / 500) % 2 == 0) {
+					c.drawCircle(dx, dy, 5 * dp, line);
+				}
 				fill.setColor(ROUTE);
-				c.drawRect(dx - 3 * dp, dy - 3 * dp, dx + 3 * dp, dy + 3 * dp, fill);
+				c.drawCircle(dx, dy, 1.8f * dp, fill);
 				String scaleTxt = OsmAndFormatter.getFormattedDistance((float) range, app).toUpperCase(Locale.ROOT);
 				text.setTextAlign(Paint.Align.RIGHT);
 				txt(c, "R " + scaleTxt, m.right - 8 * dp, m.bottom - 8 * dp, 9, DIM, m.width(), false);
@@ -665,19 +775,59 @@ public final class CyberDrive {
 			c.restore();
 		}
 
+		/** Puts route points from..to (every step-th, always the last) into path, heading-up around (cx, cy). */
+		private void trace(List<Location> pts, int from, int to, int step, double lat0, double lon0, double kx, double ky,
+				double cos, double sin, double scale, float cx, float cy) {
+			path.reset();
+			boolean first = true;
+			for (int i = from; i < to; i = (i + step < to || i == to - 1) ? i + step : to - 1) {
+				Location l = pts.get(i);
+				double x = (l.getLongitude() - lon0) * kx, yy = (l.getLatitude() - lat0) * ky;
+				float sx = (float) (cx + (x * cos - yy * sin) * scale);
+				float sy = (float) (cy - (x * sin + yy * cos) * scale);
+				if (first) {
+					path.moveTo(sx, sy);
+					first = false;
+				} else {
+					path.lineTo(sx, sy);
+				}
+			}
+		}
+
 		/** Next manoeuvre, heading tape, ETA/distance/speed and the status line, over the map. */
 		private void mapOverlay(Canvas c, State s, float l, float t, float r, float b) {
-			// next manoeuvre, top left
-			if (s.next != null && s.next.directionInfo != null && !s.deviated) {
-				RectF box = new RectF(l, t, Math.min(r, l + 230 * dp), t + 84 * dp);
-				panels.add(box);
-				frame(c, box, PHOSPHOR, false);
-				drawArrow(c, s.next.directionInfo.getTurnType(), box.left + 40 * dp, box.centerY(), 26 * dp);
+			// route alert, top left: transparent with outlined text so it reads over the wireframe
+			boolean blink = (s.now / 500) % 2 == 0;
+			float aw = Math.min(r - l, 260 * dp);
+			if (s.rerouting()) {
+				if (blink) {
+					txt(c, "ROUTE OBSTRUCTED", l, t + 24 * dp, 22, ALERT, aw, true);
+				}
+				txt(c, s.deviated ? "OFF ROUTE · FINDING A NEW WAY" : "ROUTE CHANGED", l, t + 44 * dp, 11, ALERT, aw, true);
+				float sx = l + 9 * dp, sy = t + 64 * dp;
+				line.setColor(ALERT);
+				line.setAlpha(255);
+				line.setStrokeWidth(2.2f * dp);
+				float sweep = (s.now % 1000) / 1000f * 360f;
+				c.drawArc(new RectF(sx - 7 * dp, sy - 7 * dp, sx + 7 * dp, sy + 7 * dp), sweep, 270, false, line);
+				txt(c, "RECALCULATING", l + 24 * dp, sy + 5 * dp, 12, ALERT, aw - 24 * dp, true);
+			} else if (s.arriving()) {
+				if (blink) {
+					txt(c, "ARRIVING", l, t + 34 * dp, 32, PHOSPHOR, aw, true);
+				}
+				String what = s.arrivingAtStop() ? "STOP" : "DESTINATION";
+				String dist = OsmAndFormatter.getFormattedDistance(s.arrivalDistance(), app).toUpperCase(Locale.ROOT);
+				String side = s.arrivalSide();
+				txt(c, what + " " + dist + ("AHEAD".equals(side) ? " AHEAD" : " ON " + side), l, t + 56 * dp, 12, PHOSPHOR, aw, true);
+				txt(c, "▸ PULL TO CURB", l, t + 74 * dp, 12, DIM, aw, true);
+			} else if (s.next != null && s.next.directionInfo != null) {
+				txt(c, "NEXT MANEUVER", l, t + 12 * dp, 10, DIM, aw, true);
+				drawArrow(c, s.next.directionInfo.getTurnType(), l + 26 * dp, t + 48 * dp, 22 * dp);
 				String dist = OsmAndFormatter.getFormattedDistance(s.next.distanceTo, app).toUpperCase(Locale.ROOT);
-				float tx = box.left + 80 * dp, tw = box.right - tx - 10 * dp;
-				txt(c, dist, tx, box.top + 36 * dp, 24, PHOSPHOR, tw, false);
+				float tx = l + 62 * dp, tw2 = aw - 62 * dp;
+				txt(c, dist, tx, t + 50 * dp, 28, PHOSPHOR, tw2, true);
 				String ns = s.nextStreet();
-				txt(c, turnWord(s.next) + (ns != null ? " ▸ " + ns : ""), tx, box.top + 60 * dp, 11, PHOSPHOR, tw, false);
+				txt(c, turnWord(s.next) + (ns != null ? " ▸ " + ns : ""), l, t + 86 * dp, 12, PHOSPHOR, aw, true);
 			}
 
 			// heading tape, top right
@@ -720,29 +870,25 @@ public final class CyberDrive {
 			line.setStrokeWidth(1 * dp);
 			c.drawRect(tape, line);
 
-			// ETA / DIST / SPEED, bottom right
-			List<String[]> rows = new ArrayList<>();
+			// ETA and distance left, bottom right (no speedometer: the speed limit replaces it)
 			if (s.routed) {
+				List<String[]> rows = new ArrayList<>();
 				rows.add(new String[] {"ETA", s.eta(s.rh.getLeftTime())});
 				rows.add(new String[] {"DIST", OsmAndFormatter.getFormattedDistance(s.rh.getLeftDistance(), app).toUpperCase(Locale.ROOT)});
+				float rh = 20 * dp, bw = 170 * dp;
+				RectF read = new RectF(r - bw, b - rows.size() * rh - 30 * dp, r, b - 22 * dp);
+				panels.add(read);
+				frame(c, read, PHOSPHOR, false);
+				for (int i = 0; i < rows.size(); i++) {
+					float yy = read.top + (i + 1) * rh;
+					txt(c, rows.get(i)[0], read.left + 10 * dp, yy, 10, DIM, 50 * dp, false);
+					text.setTextAlign(Paint.Align.RIGHT);
+					txt(c, rows.get(i)[1], read.right - 10 * dp, yy, 15, PHOSPHOR, bw - 60 * dp, false);
+					text.setTextAlign(Paint.Align.LEFT);
+				}
 			}
-			String spd = "--";
-			if (s.loc != null && s.loc.hasSpeed()) {
-				FormattedValue fv = OsmAndFormatter.getFormattedSpeedValue(s.loc.getSpeed(), app);
-				spd = fv.value + " " + fv.unit.toUpperCase(Locale.ROOT);
-			}
-			rows.add(new String[] {"SPD", spd});
-			float rh = 20 * dp, bw = 170 * dp;
-			RectF read = new RectF(r - bw, b - rows.size() * rh - 30 * dp, r, b - 22 * dp);
-			panels.add(read);
-			frame(c, read, PHOSPHOR, false);
-			for (int i = 0; i < rows.size(); i++) {
-				float yy = read.top + (i + 1) * rh;
-				txt(c, rows.get(i)[0], read.left + 10 * dp, yy, 10, DIM, 50 * dp, false);
-				text.setTextAlign(Paint.Align.RIGHT);
-				txt(c, rows.get(i)[1], read.right - 10 * dp, yy, 15, PHOSPHOR, bw - 60 * dp, false);
-				text.setTextAlign(Paint.Align.LEFT);
-			}
+
+			recenterRing(c, l, b);
 
 			// status line, bottom centre
 			String status;
@@ -753,6 +899,8 @@ public final class CyberDrive {
 			} else if (s.deviated) {
 				status = "> OFF ROUTE";
 				col = ALERT;
+			} else if (s.arriving()) {
+				status = "> ARRIVING";
 			} else if (s.following) {
 				status = "> FOLLOW ROUTE";
 			} else if (s.routed) {

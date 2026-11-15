@@ -18,7 +18,7 @@ PHOSPHOR = (0.722, 1.0, 0.478)   # #B8FF7A (the model shader uses colours as-is,
 FACE = (0.012, 0.03, 0.016)       # near-black with a hint of green, like the building faces
 SIZE = 6.0                        # longest side, model units
 BEAM = 0.03                       # beam width as a fraction of SIZE (about 1.1 dp at icon size 1)
-VERSION = "16.11.2026"
+VERSION = "17.11.2026"  # bump when the models change, so installed copies are replaced
 
 # ---------------------------------------------------------------- shapes (as in the artifact)
 HF = [[0, 1, 2, 3], [5, 4, 7, 6], [4, 5, 1, 0], [3, 2, 6, 7], [4, 0, 3, 7], [1, 5, 6, 2]]
@@ -158,7 +158,7 @@ def crease_edges(p):
 
 class Obj:
     def __init__(self):
-        self.v, self.vn, self.faces = [], [], {"cybernav_face": [], "cybernav_edge": []}
+        self.v, self.vn, self.faces = [], [], {"cybernav_face": [], "cybernav_edge_profile_color": []}
 
     def poly(self, mat, pts, n):
         base = len(self.v) + 1
@@ -197,20 +197,20 @@ class Obj:
         # HF assumes box order; recolour the faces just added as edges
         added = self.faces["cybernav_face"][-12:]
         del self.faces["cybernav_face"][-12:]
-        self.faces["cybernav_edge"] += added
+        self.faces["cybernav_edge_profile_color"] += added
 
     def write(self, path, name):
         with open(path + ".mtl", "w") as m:
             m.write("# cyberNAV vehicle marker\n")
             m.write("newmtl cybernav_face\nKd %.3f %.3f %.3f\nd 1\n\n" % FACE)
-            m.write("newmtl cybernav_edge\nKd %.3f %.3f %.3f\nd 1\n" % PHOSPHOR)
+            m.write("newmtl cybernav_edge_profile_color\nKd %.3f %.3f %.3f\nd 1\n" % PHOSPHOR)
         with open(path + ".obj", "w") as o:
             o.write("# cyberNAV vehicle marker: %s\nmtllib %s.mtl\no %s\n" % (name, os.path.basename(path), os.path.basename(path)))
             for p in self.v:
                 o.write("v %.4f %.4f %.4f\n" % tuple(p))
             for n in self.vn:
                 o.write("vn %.4f %.4f %.4f\n" % tuple(n))
-            for mat in ("cybernav_face", "cybernav_edge"):
+            for mat in ("cybernav_face", "cybernav_edge_profile_color"):
                 o.write("usemtl %s\n" % mat)
                 for f in self.faces[mat]:
                     o.write("f " + " ".join("%d//%d" % t for t in f) + "\n")

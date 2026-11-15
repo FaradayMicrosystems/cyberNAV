@@ -2,6 +2,18 @@
 
 Every change gets its own version: v0.0.N, one higher per release. GitHub Actions picks the number and publishes each release with the list of commits it contains; this file keeps the human-readable history. Downloads: https://github.com/FaradayMicrosystems/cyberNAV/releases
 
+## v0.0.20 (2026-11-16)
+
+- Fix: navigation from the driving screen works. Picking a destination in the route search bar only stored it: OsmAnd calculates a route, opens the route card with Start and sets up voice prompts only in route planning mode, which the stock Navigation button enters first and the driving screen never did (broken since v0.0.17). The search bar now enters route planning mode first, so a picked destination gets a route, the route card, START and turn-by-turn voice.
+- New round re-centre button on the map (bottom left): a ring with a crosshair. Tap it to jump back to your position and follow it again; the centre dot lights while the map is following you. CENTER in the button row does the same, and both ask for location permission if it is missing.
+- Phosphor themes: Green, Amber, Ice and White. The new THEME button on the driving screen switches between them. One theme colours the HUD, the CRT corner brackets, your vehicle, the 3D building edges and the road lines (side streets in a dimmer tone of the same colour). The route stays yellow and alerts stay red in every theme. Your choice is remembered.
+- Route alerts on the map, in place of the next-turn panel. They are see-through, with outlined text, like the handoff design:
+  - ARRIVING (blinking) within 250 m of your next stop or destination, with the distance and which side of the road it is on, and "PULL TO CURB";
+  - ROUTE OBSTRUCTED (blinking, red) with the cause ("OFF ROUTE · FINDING A NEW WAY" or "ROUTE CHANGED") and a spinning RECALCULATING indicator while a new route is found.
+- Minimap: the destination is a blinking ring, and after a reroute the old route stays on it as a dashed line for 90 seconds.
+- The speed readout is gone from the map; the speed limit in the sidebar replaces it. The bottom readout now shows ETA and distance left, on a route only.
+- The status line gains ARRIVING.
+
 ## v0.0.19 (2026-11-16)
 
 - Your position on the map is now a CyberNav vehicle: a 3D phosphor-green wireframe with black faces that turns and tilts with the chase cam. The default is Meridian, the sedan.
