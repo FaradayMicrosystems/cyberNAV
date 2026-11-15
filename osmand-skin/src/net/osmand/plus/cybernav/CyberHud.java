@@ -19,7 +19,6 @@ import android.widget.FrameLayout;
  */
 public final class CyberHud {
 	private static final String FONT_ASSET = "fonts/cybernav_mono.ttf"; // Share Tech Mono (OFL 1.1)
-	private static final int PHOSPHOR = 0xFFB8FF7A;
 	private static final String TAG = "cybernav_crt";
 	private static Typeface font;
 
@@ -38,6 +37,15 @@ public final class CyberHud {
 	/** The typeface OsmAnd's FontCache builds its normal and medium fonts from; null = system font. */
 	public static Typeface font() {
 		return font;
+	}
+
+	/** Redraws the CRT brackets after a theme switch. */
+	static void refresh(Activity activity) {
+		ViewGroup content = activity.findViewById(android.R.id.content);
+		View overlay = content != null ? content.findViewWithTag(TAG) : null;
+		if (overlay != null) {
+			overlay.invalidate();
+		}
 	}
 
 	/** Puts the CRT overlay over the map screen once (from MapActivity.onResume). */
@@ -66,11 +74,8 @@ public final class CyberHud {
 			setWillNotDraw(false);
 			scan.setColor(Color.argb(46, 0, 0, 0)); // HUD token "scanline": black at 18%
 			scan.setStrokeWidth(Math.max(1f, dp * 0.7f));
-			bracket.setColor(PHOSPHOR);
-			bracket.setAlpha(204);
 			bracket.setStyle(Paint.Style.STROKE);
 			bracket.setStrokeWidth(1.6f * dp);
-			bracket.setShadowLayer(4 * dp, 0, 0, PHOSPHOR);
 			setLayerType(LAYER_TYPE_SOFTWARE, null); // the bracket glow needs a software layer
 		}
 
@@ -95,6 +100,10 @@ public final class CyberHud {
 				canvas.drawLine(0, y, w, y, scan);
 			}
 			canvas.drawRect(0, 0, w, h, vignette);
+			int ink = CyberTheme.ink(getContext()); // the phosphor theme's colour
+			bracket.setColor(ink);
+			bracket.setAlpha(204);
+			bracket.setShadowLayer(4 * dp, 0, 0, ink);
 			float m = 16 * dp, l = 26 * dp;
 			float[][] corners = {{m, m, 1, 1}, {w - m, m, -1, 1}, {m, h - m, 1, -1}, {w - m, h - m, -1, -1}};
 			for (float[] c : corners) {

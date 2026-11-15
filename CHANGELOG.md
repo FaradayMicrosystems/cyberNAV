@@ -2,6 +2,16 @@
 
 Every change gets its own version: v0.0.N, one higher per release. GitHub Actions picks the number and publishes each release with the list of commits it contains; this file keeps the human-readable history. Downloads: https://github.com/FaradayMicrosystems/cyberNAV/releases
 
+## v0.0.20 (2026-11-16)
+
+- Phosphor themes: Green, Amber, Ice and White. The new THEME button on the driving screen switches between them. One theme colours the HUD, the CRT corner brackets, your vehicle, the 3D building edges and the road lines (side streets in a dimmer tone of the same colour). The route stays yellow and alerts stay red in every theme. Your choice is remembered.
+- Route alerts on the map, in place of the next-turn panel. They are see-through, with outlined text, like the handoff design:
+  - ARRIVING (blinking) within 250 m of your next stop or destination, with the distance and which side of the road it is on, and "PULL TO CURB";
+  - ROUTE OBSTRUCTED (blinking, red) with the cause ("OFF ROUTE · FINDING A NEW WAY" or "ROUTE CHANGED") and a spinning RECALCULATING indicator while a new route is found.
+- Minimap: the destination is a blinking ring, and after a reroute the old route stays on it as a dashed line for 90 seconds.
+- The speed readout is gone from the map; the speed limit in the sidebar replaces it. The bottom readout now shows ETA and distance left, on a route only.
+- The status line gains ARRIVING.
+
 ## v0.0.19 (2026-11-16)
 
 - Your position on the map is now a CyberNav vehicle: a 3D phosphor-green wireframe with black faces that turns and tilts with the chase cam. The default is Meridian, the sedan.
