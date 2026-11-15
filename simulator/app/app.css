@@ -1,0 +1,133 @@
+@font-face{font-family:"Chakra Petch";font-weight:400;font-display:swap;src:url(fonts/chakra-petch-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:"Chakra Petch";font-weight:500;font-display:swap;src:url(fonts/chakra-petch-latin-500-normal.woff2) format("woff2")}
+@font-face{font-family:"Chakra Petch";font-weight:600;font-display:swap;src:url(fonts/chakra-petch-latin-600-normal.woff2) format("woff2")}
+@font-face{font-family:"Share Tech Mono";font-weight:400;font-display:swap;src:url(fonts/share-tech-mono-latin-400-normal.woff2) format("woff2")}
+
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--ground);overflow:hidden}
+body{font-family:var(--font-data);color:var(--phosphor);-webkit-tap-highlight-color:transparent}
+button{font:inherit}
+.hidden{display:none!important}
+.num{font-variant-numeric:tabular-nums}
+
+/* ---------- desktop simulator layout ---------- */
+.sim{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto 1fr auto;gap:12px;height:100%;padding:12px;overflow:auto}
+.sim__head{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 24px;border-bottom:1px solid var(--line);padding-bottom:8px}
+.sim__title{font-family:var(--font-head);font-weight:600;font-size:16px;letter-spacing:.2em}
+.sim__sub{font-size:11px;letter-spacing:.14em;color:var(--ink-muted)}
+.sim__tabs{margin-left:auto}
+.device-label{font-family:var(--font-head);font-size:11px;letter-spacing:.18em;color:var(--ink-muted);margin:0 0 6px}
+.phone-frame{width:390px;height:min(780px,calc(100vh - 150px));min-height:560px;border:1px solid var(--line-strong);position:relative}
+.car-col{display:flex;flex-direction:column;gap:12px;min-width:0}
+.car-frame{position:relative;width:100%;max-width:1100px;aspect-ratio:16/9;border:1px solid var(--line-strong);background:#000}
+.console{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start}
+.console .ph-panel{flex:1 1 300px}
+.console .ph-log{max-height:180px;overflow:auto}
+@media (max-width:900px){
+  .sim{display:block;padding:0}
+  .sim__head{padding:8px 12px}
+  .phone-frame{width:100%;height:calc(100vh - 52px);min-height:0;border:0}
+  .car-frame{border:0}
+  .sim[data-tab="phone"] .car-col{display:none}
+  .sim[data-tab="car"] .phone-col{display:none}
+  .sim[data-tab="car"] .car-col{padding:8px}
+}
+@media (min-width:901px){.sim__tabs{display:none}}
+
+/* ---------- phone UI ---------- */
+.app{position:absolute;inset:0;overflow:hidden;background:var(--ground)}
+.app canvas.map{position:absolute;inset:0;width:100%;height:100%;cursor:crosshair;touch-action:none}
+.topbar{position:absolute;left:8px;right:8px;top:calc(8px + env(safe-area-inset-top));display:flex;flex-direction:column;gap:8px;padding:8px 10px;z-index:3}
+.topbar__row{display:flex;align-items:center;gap:8px}
+.brand{font-family:var(--font-head);font-weight:600;font-size:14px;letter-spacing:.2em;white-space:nowrap}
+.brand small{display:block;font-size:9px;letter-spacing:.3em;color:var(--ink-muted);font-weight:400}
+.clock{margin-left:auto;font-size:13px;color:var(--ink-soft)}
+.search-row{display:flex;gap:6px}
+.search-row .ph-input{flex:1;font-size:14px;padding:7px 9px}
+.drop{position:absolute;left:8px;right:8px;z-index:4;max-height:55%;overflow:auto}
+.results li{list-style:none}
+.results ul{margin:0;padding:0}
+.result{display:flex;justify-content:space-between;gap:10px;width:100%;text-align:left;background:none;border:0;border-bottom:1px dotted var(--line-faint);color:var(--phosphor);padding:8px 2px;cursor:pointer;font-size:13px;letter-spacing:.04em;text-transform:uppercase}
+.result:hover,.result:focus-visible{background:var(--fill-active);outline:none}
+.result small{color:var(--ink-muted);white-space:nowrap}
+.empty{color:var(--ink-muted);font-size:12px;padding:6px 0}
+.turn{position:absolute;left:8px;right:8px;top:calc(8px + env(safe-area-inset-top));z-index:3;display:grid;grid-template-columns:auto 1fr;gap:2px 12px;align-items:center}
+.turn__glyph{grid-row:span 2;font-size:40px;line-height:1;width:48px;text-align:center;text-shadow:var(--route-glow)}
+.turn__dist{font-family:var(--font-head);font-size:24px;font-weight:600;letter-spacing:.1em}
+.turn__text{font-family:var(--font-head);font-size:14px;letter-spacing:.1em;font-weight:500}
+.turn__then{grid-column:1/-1;font-size:11px;color:var(--ink-muted);letter-spacing:.1em;border-top:1px solid var(--line-faint);padding-top:4px;margin-top:4px}
+.banner{position:absolute;left:50%;transform:translateX(-50%);top:calc(124px + env(safe-area-inset-top));z-index:3;font-family:var(--font-head);font-size:12px;letter-spacing:.2em;padding:6px 12px;border:1px solid currentColor;background:var(--panel)}
+.banner.caution{color:var(--signal-caution)}.banner.alert{color:var(--signal-alert)}
+.sheet{position:absolute;left:8px;right:8px;bottom:calc(44px + env(safe-area-inset-bottom));z-index:3;display:flex;flex-direction:column;gap:8px;max-height:60%;overflow:auto}
+.route-opt{display:grid;grid-template-columns:1fr auto;gap:2px 8px;text-align:left;width:100%;background:none;border:1px solid var(--line-control);color:var(--ink-soft);padding:8px 10px;cursor:pointer}
+.route-opt[aria-pressed="true"]{border-color:var(--phosphor);background:var(--fill-active);color:var(--phosphor)}
+.route-opt b{font-family:var(--font-head);font-size:18px;letter-spacing:.08em;font-weight:600}
+.route-opt span{font-size:11px;color:var(--ink-muted);letter-spacing:.08em;text-transform:uppercase}
+.route-opt em{font-style:normal;font-size:13px;align-self:center}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.row .grow{flex:1}
+.big-btn{font-size:14px;padding:9px 14px;letter-spacing:.14em}
+.navbar{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px}
+.eta{font-family:var(--font-head);font-size:22px;font-weight:500;letter-spacing:.1em}
+.eta small{display:block;font-size:11px;color:var(--ink-muted);letter-spacing:.14em;font-family:var(--font-data)}
+.mapbtns{position:absolute;right:8px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:6px;z-index:2}
+.mapbtns .ph-btn{width:40px;height:40px;padding:0;background:var(--panel);font-size:15px}
+.statusbar{position:absolute;left:0;right:0;bottom:0;z-index:3;background:var(--panel);border-top:1px solid var(--line);padding:6px 10px calc(6px + env(safe-area-inset-bottom));font-size:11px;gap:4px 16px}
+.speed{display:inline-flex;align-items:baseline;gap:4px}
+.limit{display:inline-block;border:1px solid var(--signal-alert);color:var(--phosphor);padding:0 4px;min-width:26px;text-align:center}
+.settings .grid{display:grid;grid-template-columns:auto 1fr;gap:8px 10px;align-items:center}
+.boot{position:absolute;inset:0;z-index:10;background:var(--ground);transition:opacity var(--dur-boot-fade) ease}
+.boot.done{opacity:0;pointer-events:none}
+.attrib{position:absolute;left:8px;bottom:calc(30px + env(safe-area-inset-bottom));font-size:9px;color:var(--ink-muted);z-index:1;letter-spacing:.04em}
+
+/* ---------- car surface (our pixels) ---------- */
+.surface{position:absolute;inset:0;overflow:hidden;background:var(--ground)}
+.surface canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+.surface .hud-line{position:absolute;left:var(--sl,12px);bottom:var(--sb,10px);font-size:12px;letter-spacing:.14em;color:var(--ink-muted);z-index:2}
+.surface .speedo{position:absolute;right:var(--sr,12px);bottom:var(--sb,10px);z-index:2;display:flex;gap:8px;align-items:center;font-family:var(--font-head);font-size:24px;letter-spacing:.06em}
+.surface .speedo small{font-size:11px;color:var(--ink-muted);font-family:var(--font-data)}
+.surface .banner{top:auto;bottom:calc(var(--sb,10px) + 40px)}
+
+/* ---------- head-unit mock (what the Android Auto HOST draws; deliberately not Phosphor) ---------- */
+.host{position:absolute;inset:0;font-family:Roboto,"Segoe UI",system-ui,sans-serif;color:#fff;pointer-events:none;letter-spacing:0}
+.host *{pointer-events:auto}
+.host__rail{position:absolute;left:0;top:0;bottom:0;width:7%;background:#111;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:12px 0;color:#ddd;font-size:13px}
+.host__rail i{font-style:normal;width:36px;height:36px;border-radius:50%;background:#2a2a2a;display:grid;place-items:center;font-size:15px}
+.host__rail i.on{background:#3a4a2a;color:var(--phosphor)}
+.host__map{position:absolute;left:7%;top:0;right:0;bottom:0}
+.host-card{position:absolute;left:16px;top:16px;width:34%;background:#1f1f1f;border-radius:16px;box-shadow:0 2px 8px rgba(0,0,0,.6);overflow:hidden}
+.host-card__turn{display:flex;gap:12px;align-items:center;padding:14px 16px;background:#252525}
+.host-card__icon{width:48px;height:48px;flex:none}
+.host-card__dist{font-size:26px;font-weight:500}
+.host-card__road{font-size:15px;color:#ddd}
+.host-card__est{display:flex;gap:14px;padding:10px 16px;font-size:14px;color:#ccc}
+.host-card__est b{color:#fff;font-weight:500}
+.host-strip{position:absolute;right:16px;top:16px;display:flex;gap:8px}
+.host-strip button,.host-mapstrip button,.host-list button,.host-search button{border:0;border-radius:999px;background:#2b2b2b;color:#fff;padding:10px 16px;font:500 14px Roboto,system-ui,sans-serif;cursor:pointer}
+.host-strip button.primary{background:var(--phosphor);color:#06100a}
+.host-mapstrip{position:absolute;right:16px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px}
+.host-mapstrip button{width:44px;height:44px;padding:0;border-radius:50%}
+.host-list{position:absolute;left:16px;top:16px;bottom:16px;width:38%;background:#1f1f1f;border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:6px;overflow:auto}
+.host-list h3{margin:4px 6px 6px;font-size:18px;font-weight:500}
+.host-list button.item{border-radius:12px;text-align:left;display:flex;flex-direction:column;gap:2px;padding:10px 12px;background:#2a2a2a}
+.host-list button.item[aria-pressed="true"]{outline:2px solid var(--phosphor)}
+.host-list button.item small{color:#bbb;font-size:12px}
+.host-list .go{margin-top:auto;background:var(--phosphor);color:#06100a}
+.host-search{position:absolute;inset:0;background:#141414;padding:16px;display:flex;flex-direction:column;gap:8px}
+.host-search input{font:16px Roboto,system-ui,sans-serif;background:#2b2b2b;border:0;border-radius:999px;color:#fff;padding:12px 18px}
+.host-msg{position:absolute;left:16px;top:16px;width:34%;background:#1f1f1f;border-radius:16px;padding:16px}
+.host-msg h3{margin:0 0 4px;font-weight:500}
+.host-tag{position:absolute;left:8px;top:100%;margin-top:4px;font:11px Roboto,system-ui,sans-serif;color:#888;pointer-events:none}
+
+@media (prefers-reduced-motion:reduce){.boot{transition:none}}
+
+/* Live mode with no roads yet: panel in the middle, map hidden so the demo city never shows. */
+.chart{position:absolute;left:16px;right:16px;top:38%;z-index:4;display:flex;flex-direction:column;gap:10px}
+.chart p{margin:0;font-family:var(--font-mono);font-size:13px;line-height:1.5;letter-spacing:.04em;color:var(--fg-dim,var(--phosphor))}
+.chart[data-status="failed"] .ph-panel__title{color:var(--signal-alert)}
+.chart .row{display:flex;gap:8px}
+.no-chart .mapbtns,.no-chart .attrib{display:none}
+.ph-bar--scan{height:4px;overflow:hidden;position:relative}
+.ph-bar--scan i{position:absolute;inset:0 auto 0 0;width:30%;background:var(--phosphor);animation:chartscan 1.4s linear infinite}
+@keyframes chartscan{from{transform:translateX(-100%)}to{transform:translateX(340%)}}
+@media (prefers-reduced-motion: reduce){.ph-bar--scan i{animation:none;width:100%;opacity:.5}}
