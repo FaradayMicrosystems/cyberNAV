@@ -50,6 +50,10 @@ public final class CyberDrive {
 	// HUD ink and its dim tone come from the phosphor theme (CyberTheme), refreshed every frame
 	private static int PHOSPHOR = 0xFFB8FF7A;
 	private static int DIM = 0xFF668E44;
+	/** Small-text tone: the ink at ~80%, readable on the black night map (v0.0.23; DIM was too dark). */
+	private static int LABEL = 0xFF93CC62;
+	/** Panel fill: black with a faint ink tint, so panels stand out from the pure black night map. */
+	private static int PANEL = 0xFF0C1408;
 	private static final int ROUTE = 0xFFFFDF3D;
 	private static final int ALERT = 0xFFFF5A44; // Phosphor HUD --signal-alert
 	private static final String TAG = "cybernav_drive";
@@ -161,7 +165,7 @@ public final class CyberDrive {
 			dp = activity.getResources().getDisplayMetrics().density;
 			Typeface font = CyberHud.font();
 			text.setTypeface(font != null ? font : Typeface.MONOSPACE);
-			text.setShadowLayer(3 * dp, 0, 0, Color.BLACK);
+			text.setShadowLayer(4 * dp, 0, 0, Color.BLACK);
 			line.setStyle(Paint.Style.STROKE);
 			line.setStrokeCap(Paint.Cap.ROUND);
 			line.setStrokeJoin(Paint.Join.ROUND);
@@ -329,7 +333,7 @@ public final class CyberDrive {
 			fill.setStyle(Paint.Style.FILL);
 			fill.setColor(down ? PHOSPHOR : Color.argb(200, 0, 0, 0));
 			c.drawCircle(cx, cy, rad, fill);
-			int ink = down ? Color.BLACK : linked ? DIM : PHOSPHOR;
+			int ink = down ? Color.BLACK : linked ? LABEL : PHOSPHOR;
 			line.setColor(ink);
 			line.setStrokeWidth(2 * dp);
 			c.drawCircle(cx, cy, rad - 1 * dp, line);
@@ -365,6 +369,8 @@ public final class CyberDrive {
 		protected void onDraw(Canvas c) {
 			PHOSPHOR = CyberTheme.ink(act);
 			DIM = CyberTheme.dim(act);
+			LABEL = mix(PHOSPHOR, 0.8f);
+			PANEL = mix(PHOSPHOR, 0.09f);
 			hits.clear();
 			panels.clear();
 			int w = getWidth(), h = getHeight();
@@ -654,10 +660,10 @@ public final class CyberDrive {
 			txt(c, "cyberNAV", x0 + lg + 8 * dp, y + lg - 2 * dp, 22, PHOSPHOR, x1 - x0 - lg - 8 * dp, false);
 			y += lg + 18 * dp;
 			String sub = s.target != null ? "DEST ▸ " + s.destination() : "STANDBY";
-			txt(c, sub, x0, y, 12, s.target != null ? PHOSPHOR : DIM, x1 - x0, false);
+			txt(c, sub, x0, y, 12, s.target != null ? PHOSPHOR : LABEL, x1 - x0, false);
 			y += 16 * dp;
 			String mode = "MODE GROUND · " + (s.loc != null ? "GPS LOCK" : "NO FIX");
-			txt(c, mode, x0, y, 11, DIM, x1 - x0, false);
+			txt(c, mode, x0, y, 11, LABEL, x1 - x0, false);
 			return y + 12 * dp;
 		}
 
@@ -671,12 +677,12 @@ public final class CyberDrive {
 				if (nxt <= 0) {
 					nxt = all;
 				}
-				txt(c, "ETA  NEXT / END", r.left + 10 * dp, r.top + 17 * dp, 11, DIM, r.width() - 20 * dp, false);
+				txt(c, "ETA  NEXT / END", r.left + 10 * dp, r.top + 17 * dp, 11, LABEL, r.width() - 20 * dp, false);
 				txt(c, s.eta(nxt) + " / " + s.eta(all), r.left + 10 * dp, r.bottom - 11 * dp, 22, PHOSPHOR, r.width() - 20 * dp, false);
 			} else {
 				boolean down = pressed != null && pressed.r.equals(r);
 				frame(c, r, PHOSPHOR, down);
-				txt(c, "ROUTE SEARCH", r.left + 10 * dp, r.top + 17 * dp, 11, DIM, r.width() - 20 * dp, false);
+				txt(c, "ROUTE SEARCH", r.left + 10 * dp, r.top + 17 * dp, 11, LABEL, r.width() - 20 * dp, false);
 				String cursor = (s.now / 600) % 2 == 0 ? "_" : " ";
 				txt(c, "> ENTER DESTINATION" + cursor, r.left + 10 * dp, r.bottom - 13 * dp, 15, down ? Color.BLACK : PHOSPHOR, r.width() - 20 * dp, false);
 				hits.add(new Hit(r, () -> search(NONE)));
@@ -710,33 +716,33 @@ public final class CyberDrive {
 			}
 			text.setTextAlign(Paint.Align.CENTER);
 			txt(c, lim, cx, cy + 8 * dp, 22, over ? ALERT : PHOSPHOR, 2 * r - 8 * dp, true);
-			txt(c, "LIMIT", cx, cy + r + 13 * dp, 9, DIM, 2 * r, true);
+			txt(c, "LIMIT", cx, cy + r + 13 * dp, 9, LABEL, 2 * r, true);
 			text.setTextAlign(Paint.Align.LEFT);
 
 			float tx = x0 + 2 * r + 12 * dp, tw = x1 - tx;
-			txt(c, "ON", tx, y + 14 * dp, 10, DIM, tw, false);
+			txt(c, "ON", tx, y + 14 * dp, 10, LABEL, tw, false);
 			txt(c, s.street(), tx, y + 31 * dp, 14, PHOSPHOR, tw, false);
 			String ns = s.nextStreet();
 			if (s.next != null) {
 				String dist = OsmAndFormatter.getFormattedDistance(s.next.distanceTo, app);
-				txt(c, "NEXT ▸ IN " + dist.toUpperCase(Locale.ROOT), tx, y + 50 * dp, 10, DIM, tw, false);
+				txt(c, "NEXT ▸ IN " + dist.toUpperCase(Locale.ROOT), tx, y + 50 * dp, 10, LABEL, tw, false);
 				txt(c, ns != null ? ns : turnWord(s.next), tx, y + 67 * dp, 13, PHOSPHOR, tw, false);
 			} else {
-				txt(c, "NEXT ▸ --", tx, y + 50 * dp, 10, DIM, tw, false);
+				txt(c, "NEXT ▸ --", tx, y + 50 * dp, 10, LABEL, tw, false);
 			}
 			return y + 92 * dp;
 		}
 
 		/** Heading-up route overview: the route from above, you at the arrow. */
 		private void minimap(Canvas c, State s, RectF m) {
-			frame(c, m, DIM, false);
-			txt(c, "ROUTE MAP", m.left + 8 * dp, m.top + 14 * dp, 9, DIM, m.width() - 16 * dp, false);
+			frame(c, m, LABEL, false);
+			txt(c, "ROUTE MAP", m.left + 8 * dp, m.top + 14 * dp, 9, LABEL, m.width() - 16 * dp, false);
 			c.save();
 			c.clipRect(m.left + 2 * dp, m.top + 2 * dp, m.right - 2 * dp, m.bottom - 2 * dp);
 			float cx = m.centerX(), cy = m.top + m.height() * 0.62f;
 			line.setColor(DIM);
-			line.setAlpha(90);
-			line.setStrokeWidth(1 * dp);
+			line.setAlpha(140);
+			line.setStrokeWidth(1.3f * dp);
 			float ring = Math.min(m.width(), m.height()) * 0.36f;
 			c.drawCircle(cx, cy, ring, line);
 			c.drawCircle(cx, cy, ring / 2f, line);
@@ -782,7 +788,7 @@ public final class CyberDrive {
 					trace(pts, from, to, step, lat0, lon0, kx, ky, cos, sin, scale, cx, cy);
 					line.setColor(pass == 0 ? DIM : ROUTE);
 					line.setAlpha(pass == 0 ? 110 : 255);
-					line.setStrokeWidth((pass == 0 ? 1.5f : 2.4f) * dp);
+					line.setStrokeWidth((pass == 0 ? 2f : 3.2f) * dp);
 					c.drawPath(path, line);
 				}
 				Location end = pts.get(pts.size() - 1);
@@ -798,11 +804,11 @@ public final class CyberDrive {
 				c.drawCircle(dx, dy, 1.8f * dp, fill);
 				String scaleTxt = OsmAndFormatter.getFormattedDistance((float) range, app).toUpperCase(Locale.ROOT);
 				text.setTextAlign(Paint.Align.RIGHT);
-				txt(c, "R " + scaleTxt, m.right - 8 * dp, m.bottom - 8 * dp, 9, DIM, m.width(), false);
+				txt(c, "R " + scaleTxt, m.right - 8 * dp, m.bottom - 8 * dp, 9, LABEL, m.width(), false);
 				text.setTextAlign(Paint.Align.LEFT);
 			} else {
 				text.setTextAlign(Paint.Align.CENTER);
-				txt(c, "NO ROUTE", cx, m.bottom - 10 * dp, 10, DIM, m.width(), true);
+				txt(c, "NO ROUTE", cx, m.bottom - 10 * dp, 10, LABEL, m.width(), true);
 				text.setTextAlign(Paint.Align.LEFT);
 			}
 			path.reset();
@@ -861,9 +867,9 @@ public final class CyberDrive {
 				String dist = OsmAndFormatter.getFormattedDistance(s.arrivalDistance(), app).toUpperCase(Locale.ROOT);
 				String side = s.arrivalSide();
 				txt(c, what + " " + dist + ("AHEAD".equals(side) ? " AHEAD" : " ON " + side), l, t + 56 * dp, 12, PHOSPHOR, aw, true);
-				txt(c, "▸ PULL TO CURB", l, t + 74 * dp, 12, DIM, aw, true);
+				txt(c, "▸ PULL TO CURB", l, t + 74 * dp, 12, LABEL, aw, true);
 			} else if (s.next != null && s.next.directionInfo != null) {
-				txt(c, "NEXT MANEUVER", l, t + 12 * dp, 10, DIM, aw, true);
+				txt(c, "NEXT MANEUVER", l, t + 12 * dp, 10, LABEL, aw, true);
 				drawArrow(c, s.next.directionInfo.getTurnType(), l + 26 * dp, t + 48 * dp, 22 * dp);
 				String dist = OsmAndFormatter.getFormattedDistance(s.next.distanceTo, app).toUpperCase(Locale.ROOT);
 				float tx = l + 62 * dp, tw2 = aw - 62 * dp;
@@ -892,7 +898,7 @@ public final class CyberDrive {
 				c.drawLine(x, tape.top, x, tape.top + (nd % 10 == 0 ? 10 : 5) * dp, line);
 				if (nd % 30 == 0) {
 					String lab = nd == 0 ? "N" : nd == 90 ? "E" : nd == 180 ? "S" : nd == 270 ? "W" : String.format(Locale.ROOT, "%03d", nd);
-					txt(c, lab, x, tape.top + 22 * dp, 10, nd % 90 == 0 ? PHOSPHOR : DIM, 40 * dp, true);
+					txt(c, lab, x, tape.top + 22 * dp, 10, nd % 90 == 0 ? PHOSPHOR : LABEL, 40 * dp, true);
 				}
 			}
 			c.restore();
@@ -907,8 +913,8 @@ public final class CyberDrive {
 			txt(c, String.format(Locale.ROOT, "HDG %03d", Math.round((bearing % 360 + 360) % 360) % 360),
 					tape.centerX(), tape.bottom - 3 * dp, 10, PHOSPHOR, tw, true);
 			text.setTextAlign(Paint.Align.LEFT);
-			line.setColor(DIM);
-			line.setStrokeWidth(1 * dp);
+			line.setColor(LABEL);
+			line.setStrokeWidth(1.5f * dp);
 			c.drawRect(tape, line);
 
 			// ETA and distance left, bottom right (no speedometer: the speed limit replaces it)
@@ -922,7 +928,7 @@ public final class CyberDrive {
 				frame(c, read, PHOSPHOR, false);
 				for (int i = 0; i < rows.size(); i++) {
 					float yy = read.top + (i + 1) * rh;
-					txt(c, rows.get(i)[0], read.left + 10 * dp, yy, 10, DIM, 50 * dp, false);
+					txt(c, rows.get(i)[0], read.left + 10 * dp, yy, 10, LABEL, 50 * dp, false);
 					text.setTextAlign(Paint.Align.RIGHT);
 					txt(c, rows.get(i)[1], read.right - 10 * dp, yy, 15, PHOSPHOR, bw - 60 * dp, false);
 					text.setTextAlign(Paint.Align.LEFT);
@@ -1050,13 +1056,13 @@ public final class CyberDrive {
 			path.lineTo(r.left + k, r.bottom);
 			path.lineTo(r.left, r.bottom - k);
 			path.close();
-			fill.setColor(down ? color : Color.BLACK);
-			fill.setAlpha(down ? 255 : 215);
+			fill.setColor(down ? color : PANEL);
+			fill.setAlpha(down ? 255 : 238);
 			c.drawPath(path, fill);
 			fill.setAlpha(255);
 			line.setColor(color);
-			line.setAlpha(230);
-			line.setStrokeWidth(1.3f * dp);
+			line.setAlpha(255);
+			line.setStrokeWidth(2f * dp);
 			c.drawPath(path, line);
 			line.setAlpha(255);
 		}
@@ -1065,7 +1071,7 @@ public final class CyberDrive {
 			boolean down = pressed != null && pressed.r.equals(r);
 			frame(c, r, PHOSPHOR, down);
 			text.setTextAlign(Paint.Align.CENTER);
-			txt(c, label, r.centerX(), r.centerY() + 5 * dp, 13, down ? Color.BLACK : PHOSPHOR, r.width() - 10 * dp, !down);
+			fit(c, label, r.centerX(), r.centerY() + 5.5f * dp, 15, down ? Color.BLACK : PHOSPHOR, r.width() - 8 * dp);
 			text.setTextAlign(Paint.Align.LEFT);
 			hits.add(new Hit(r, run));
 		}
@@ -1075,20 +1081,32 @@ public final class CyberDrive {
 			text.setTextSize(size * dp);
 			float wd = text.measureText(s);
 			float k = wd > maxW && wd > 0 ? Math.max(0.6f, maxW / wd) : 1f;
-			txt(c, s, x, y, size * k, color, maxW, true);
+			draw(c, s, x, y, size * k, color, maxW, true);
 		}
 
-		/** Draws one line of HUD text, cut to fit maxW. Size in dp; glow adds the black outline. */
+		/** The colour at fraction f of its brightness, over black. */
+		private int mix(int color, float f) {
+			return Color.argb(255, Math.round((color >> 16 & 0xFF) * f), Math.round((color >> 8 & 0xFF) * f), Math.round((color & 0xFF) * f));
+		}
+
+		/**
+		 * Draws one line of HUD text, cut to fit maxW. Size in dp; glow adds the black outline. Since
+		 * v0.0.23 small text is drawn up to 20% bigger (labels of 9-11 dp were hard to read at night).
+		 */
 		private void txt(Canvas c, String s, float x, float y, float size, int color, float maxW, boolean glow) {
+			draw(c, s, x, y, size < 14 ? Math.min(size * 1.2f, 14) : size, color, maxW, glow);
+		}
+
+		private void draw(Canvas c, String s, float x, float y, float size, int color, float maxW, boolean glow) {
 			if (s == null) {
 				return;
 			}
 			text.setTextSize(size * dp);
 			text.setColor(color);
-			if (!glow && color == Color.BLACK) {
+			if (color == Color.BLACK) { // black text sits on a lit button: no outline
 				text.clearShadowLayer();
 			} else {
-				text.setShadowLayer(3 * dp, 0, 0, Color.BLACK);
+				text.setShadowLayer(4 * dp, 0, 0, Color.BLACK);
 			}
 			if (maxW > 0 && text.measureText(s) > maxW) {
 				int n = text.breakText(s, true, maxW - text.measureText("…"), null);

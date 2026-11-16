@@ -2,6 +2,15 @@
 
 Every change gets its own version: v0.0.N, one higher per release. GitHub Actions picks the number and publishes each release with the list of commits it contains; this file keeps the human-readable history. Downloads: https://github.com/FaradayMicrosystems/cyberNAV/releases
 
+## v0.0.23 (2026-11-16)
+
+Driving screen easier to read in night (dark) mode, where the map is pure black:
+- Small text (labels, ETA, LIMIT, ROUTE MAP, heading tape) is up to 20% bigger, and drawn in a brighter tone of the theme colour (about 80% instead of 55%).
+- Button labels are bigger (15 instead of 13) and shrink to fit rather than being cut off.
+- Panels have thicker, fully solid outlines (2 dp instead of 1.3) and a faint tint of the theme colour, so they stand out from the black map.
+- Minimap grid and route lines are thicker and brighter.
+- The CRT effect is lighter: scanlines at about half strength, much less corner darkening, and solid, thicker corner brackets.
+
 ## v0.0.22 (2026-11-16)
 
 - Every vehicle is now solid yellow (the route colour) with black wireframe lines, in every theme. Before, they were black with lines in the theme colour.
