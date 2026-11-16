@@ -72,10 +72,10 @@ public final class CyberHud {
 			setFocusable(false);
 			setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
 			setWillNotDraw(false);
-			scan.setColor(Color.argb(46, 0, 0, 0)); // HUD token "scanline": black at 18%
+			scan.setColor(Color.argb(22, 0, 0, 0)); // lighter than the HUD token (18%) so the night map stays bright (v0.0.23)
 			scan.setStrokeWidth(Math.max(1f, dp * 0.7f));
 			bracket.setStyle(Paint.Style.STROKE);
-			bracket.setStrokeWidth(1.6f * dp);
+			bracket.setStrokeWidth(2.2f * dp);
 			setLayerType(LAYER_TYPE_SOFTWARE, null); // the bracket glow needs a software layer
 		}
 
@@ -88,7 +88,7 @@ public final class CyberHud {
 		protected void onSizeChanged(int w, int h, int oldw, int oldh) {
 			float r = (float) Math.hypot(w, h) / 2f;
 			vignette.setShader(new RadialGradient(w / 2f, h / 2f, r,
-					new int[] {Color.TRANSPARENT, Color.TRANSPARENT, Color.argb(140, 0, 0, 0)},
+					new int[] {Color.TRANSPARENT, Color.TRANSPARENT, Color.argb(60, 0, 0, 0)},
 					new float[] {0f, 0.55f, 1f}, Shader.TileMode.CLAMP));
 		}
 
@@ -102,7 +102,7 @@ public final class CyberHud {
 			canvas.drawRect(0, 0, w, h, vignette);
 			int ink = CyberTheme.ink(getContext()); // the phosphor theme's colour
 			bracket.setColor(ink);
-			bracket.setAlpha(204);
+			bracket.setAlpha(255);
 			bracket.setShadowLayer(4 * dp, 0, 0, ink);
 			float m = 16 * dp, l = 26 * dp;
 			float[][] corners = {{m, m, 1, 1}, {w - m, m, -1, 1}, {m, h - m, 1, -1}, {w - m, h - m, -1, -1}};
