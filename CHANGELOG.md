@@ -2,6 +2,13 @@
 
 Every change gets its own version: v0.0.N, one higher per release. GitHub Actions picks the number and publishes each release with the list of commits it contains; this file keeps the human-readable history. Downloads: https://github.com/FaradayMicrosystems/cyberNAV/releases
 
+## v0.0.24 (2026-11-23)
+
+Documentation only; the app itself is unchanged.
+- New documentation set in `docs/`: a handover for whoever picks up the project next, a user guide for the driving screen, architecture, build and release, design, a decisions log, known issues and a roadmap. Start at `docs/README.md`.
+- A plan for rebuilding cyberNAV as a fully custom app without OsmAnd: `docs/REBUILD-PLAN.md`.
+- The design concepts and handoff (previously only on the `main` branch) now sit with the app in `docs/concepts/`.
+
 ## v0.0.23 (2026-11-16)
 
 Driving screen easier to read in night (dark) mode, where the map is pure black:
